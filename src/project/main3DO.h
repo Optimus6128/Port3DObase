@@ -1,0 +1,23 @@
+#ifndef MAIN_3DO_H
+#define MAIN_3DO_H
+
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+
+#include "graphics.h"
+#include "displayutils.h"
+#include "operamath.h"
+#include "mem.h"
+#include "math.h"
+#include "io.h"
+#include "event.h"
+
+
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 240
+#define SCREEN_PAGES 2
+
+int main3DO();
+
+#endif
