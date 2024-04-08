@@ -19,49 +19,55 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\3DO\hardware\CelRenderer.c" />
-    <ClCompile Include="src\3DO\SDK\audio.c" />
-    <ClCompile Include="src\3DO\SDK\celutils.c" />
-    <ClCompile Include="src\3DO\SDK\displayutils.c" />
-    <ClCompile Include="src\3DO\SDK\event.c" />
-    <ClCompile Include="src\3DO\SDK\form3DO.c" />
-    <ClCompile Include="src\3DO\SDK\graphics.c" />
-    <ClCompile Include="src\3DO\SDK\io.c" />
-    <ClCompile Include="src\3DO\SDK\mem.c" />
-    <ClCompile Include="src\3DO\SDK\operamath.c" />
-    <ClCompile Include="src\3DO\SDK\sintab.c" />
-    <ClCompile Include="src\3DO\SDK\timerutils.c" />
-    <ClCompile Include="src\main.c" />
-    <ClCompile Include="src\project\lesson0\main3DO.c" />
-    <ClCompile Include="src\tinyFPS.c" />
+    <ClCompile Include="..\..\3DO\hardware\CelRenderer.c" />
+    <ClCompile Include="..\..\3DO\SDK\audio.c" />
+    <ClCompile Include="..\..\3DO\SDK\celutils.c" />
+    <ClCompile Include="..\..\3DO\SDK\displayutils.c" />
+    <ClCompile Include="..\..\3DO\SDK\event.c" />
+    <ClCompile Include="..\..\3DO\SDK\form3DO.c" />
+    <ClCompile Include="..\..\3DO\SDK\graphics.c" />
+    <ClCompile Include="..\..\3DO\SDK\io.c" />
+    <ClCompile Include="..\..\3DO\SDK\mem.c" />
+    <ClCompile Include="..\..\3DO\SDK\operamath.c" />
+    <ClCompile Include="..\..\3DO\SDK\sintab.c" />
+    <ClCompile Include="..\..\3DO\SDK\soundfile.c" />
+    <ClCompile Include="..\..\3DO\SDK\task.c" />
+    <ClCompile Include="..\..\3DO\SDK\timerutils.c" />
+    <ClCompile Include="..\..\main.c" />
+    <ClCompile Include="..\..\tinyFPS.c" />
+    <ClCompile Include="main3DO.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\3DO\hardware\CelRenderer.h" />
-    <ClInclude Include="src\3DO\SDK\3dlib.h" />
-    <ClInclude Include="src\3DO\SDK\audio.h" />
-    <ClInclude Include="src\3DO\SDK\celutils.h" />
-    <ClInclude Include="src\3DO\SDK\displayutils.h" />
-    <ClInclude Include="src\3DO\SDK\event.h" />
-    <ClInclude Include="src\3DO\SDK\filestream.h" />
-    <ClInclude Include="src\3DO\SDK\filestreamfunctions.h" />
-    <ClInclude Include="src\3DO\SDK\form3DO.h" />
-    <ClInclude Include="src\3DO\SDK\graphics.h" />
-    <ClInclude Include="src\3DO\SDK\hardware.h" />
-    <ClInclude Include="src\3DO\SDK\io.h" />
-    <ClInclude Include="src\3DO\SDK\mem.h" />
-    <ClInclude Include="src\3DO\SDK\operamath.h" />
-    <ClInclude Include="src\3DO\SDK\sintab.h" />
-    <ClInclude Include="src\3DO\SDK\timerutils.h" />
-    <ClInclude Include="src\3DO\SDK\types.h" />
-    <ClInclude Include="src\main.h" />
-    <ClInclude Include="src\project\lesson0\main3DO.h" />
-    <ClInclude Include="src\tinyFPS.h" />
+    <ClInclude Include="..\..\3DO\hardware\CelRenderer.h" />
+    <ClInclude Include="..\..\3DO\SDK\3dlib.h" />
+    <ClInclude Include="..\..\3DO\SDK\audio.h" />
+    <ClInclude Include="..\..\3DO\SDK\celutils.h" />
+    <ClInclude Include="..\..\3DO\SDK\displayutils.h" />
+    <ClInclude Include="..\..\3DO\SDK\event.h" />
+    <ClInclude Include="..\..\3DO\SDK\filestream.h" />
+    <ClInclude Include="..\..\3DO\SDK\filestreamfunctions.h" />
+    <ClInclude Include="..\..\3DO\SDK\form3DO.h" />
+    <ClInclude Include="..\..\3DO\SDK\graphics.h" />
+    <ClInclude Include="..\..\3DO\SDK\hardware.h" />
+    <ClInclude Include="..\..\3DO\SDK\io.h" />
+    <ClInclude Include="..\..\3DO\SDK\mem.h" />
+    <ClInclude Include="..\..\3DO\SDK\music.h" />
+    <ClInclude Include="..\..\3DO\SDK\operamath.h" />
+    <ClInclude Include="..\..\3DO\SDK\sintab.h" />
+    <ClInclude Include="..\..\3DO\SDK\soundfile.h" />
+    <ClInclude Include="..\..\3DO\SDK\soundspooler.h" />
+    <ClInclude Include="..\..\3DO\SDK\task.h" />
+    <ClInclude Include="..\..\3DO\SDK\timerutils.h" />
+    <ClInclude Include="..\..\3DO\SDK\types.h" />
+    <ClInclude Include="..\..\main.h" />
+    <ClInclude Include="..\..\tinyFPS.h" />
+    <ClInclude Include="main3DO.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{395DB8A5-F08D-4066-A632-83EE5E9C4472}</ProjectGuid>
+    <ProjectGuid>{0C8937D9-59D6-42BE-B730-BFB5871509D4}</ProjectGuid>
     <RootNamespace>PallewSoft</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>Port3DObase_lesson0</ProjectName>
+    <ProjectName>lesson1</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -130,7 +136,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;$(SolutionDir)\src\project\lesson0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;$(SolutionDir)\src\project\lesson1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
@@ -159,7 +165,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;$(SolutionDir)\src\project\lesson0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;$(SolutionDir)\src\project\lesson1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
