@@ -12,7 +12,7 @@ char* GetChunk(uint32* chunk_ID, char** buffer, int32* bufLen)
 	if (*bufLen > 0) {
 
 		buf = *buffer;
-		//*chunk_ID = LONG_ENDIAN_FLIP(((PixelChunk*)buf)->chunk_ID);	// that would trigger microsoft defender false positive for a virus!!!! Now I flip the chunk defines in funcs3DO.h instead
+		//*chunk_ID = LONG_ENDIAN_FLIP(((PixelChunk*)buf)->chunk_ID);	// that would trigger microsoft defender false positive for a virus!!!! Now I flip the chunk defines in form3DO.h instead
 		*chunk_ID = ((PixelChunk*)buf)->chunk_ID;
 
 		/* jump to next chunk */

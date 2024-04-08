@@ -95,6 +95,39 @@ typedef struct PLUTChunk
 	RGB555	PLUT[1];			/*	PLUT entries  */
 } PLUTChunk;
 
+typedef struct ImageCC
+{
+	int32	chunk_ID;			/* 'IMAG' Magic number to identify the image control chunk */
+	int32	chunk_size; 		/*	size in bytes of chunk including chunk_size  (24)  */
+
+	int32	w;					/*	width in pixels */
+	int32	h;					/*	height in pixels */
+	int32	bytesperrow;		/*	may include pad bytes at row end for alignment */
+	uint8	bitsperpixel;		/*	8,16,24 */
+	uint8	numcomponents;		/*	3 => RGB (or YUV) , 1 => color index */
+	/*	3 => RGB (8  16 or 24 bits per pixel)	*/
+	/*		 8 bit is 332 RGB  (or YUV) */
+	/*		 16 bit is 555 RGB	(or YUV) */
+	/*		 24 bit is 888 RGB	(or YUV) */
+	/* 1 => coded  meaning	color indexed;	 */
+	/*			 Coded images Require a Pixel Lookup Table Chunk */
+	uint8	numplanes;			/*	1 => chunky;  3=> planar  */
+	/*	although the hardware does not support planar modes */
+	/*	it is useful for some compression methods to separate */
+	/*	the image into RGB planes or into YCrCb planes */
+	/*	numcomponents must be greater than 1 for planar to */
+	/*	have any effect */
+	uint8	colorspace; 		/*	0 => RGB, 1 => YCrCb   */
+	uint8	comptype;			/*	compression type; 0 => uncompressed */
+	/*	1=Cel bit packed */
+	/*	other compression types will be defined later */
+	uint8	hvformat;			/*	0 => 0555;	1=> 0554h;	2=> 0554v; 3=> v554h  */
+	uint8	pixelorder; 		/*	0 => (0,0), (1,0),	(2,0)	(x,y) is (row,column) */
+	/*	1 => (0,0), (0,1), (1,0), (1,1)  Sherrie LRform  */
+	/*	2 => (0,1), (0,0), (1,1), (1,0)  UGO LRform  */
+	uint8	version;			/*	file format version identifier.  0 for now	*/
+} ImageCC;
+
 char* GetChunk(uint32* chunk_ID, char** buffer, int32* bufLen);
 
 #endif
