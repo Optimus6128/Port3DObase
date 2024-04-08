@@ -4,8 +4,7 @@
 #include "main.h"
 #include "tinyFPS.h"
 
-//#include "project/main3DO.h"
-#include "project/lesson1/main3DO_1.h"
+#include "main3DO.h"
 
 #include "hardware.h"
 #include "event.h"
@@ -175,7 +174,7 @@ static void screenInit(int width, int height)
 	const int desktopScreenWidth = 1920;
 	const int desktopScreenHeight = 1080;
 
-	window = SDL_CreateWindow("Bizarro Engine", (desktopScreenWidth - width) / 2, (desktopScreenHeight - height) / 2, width, height, 0);
+	window = SDL_CreateWindow("Port3DObase - lesson 0", (desktopScreenWidth - width) / 2, (desktopScreenHeight - height) / 2, width, height, 0);
 	surface = SDL_GetWindowSurface(window);
 
 	screenSDL.width = surface->w;
@@ -220,14 +219,12 @@ int main()
 
 	initFpsFonts();
 
-	//initHardware3DO();
-
 	do {
 		timeTicks = SDL_GetTicks();
 
 		updateInput();
 
-		main3DO_1();
+		main3DO();
 
 		render3DOscreen();
 

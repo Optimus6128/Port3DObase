@@ -39,11 +39,8 @@
     <ClCompile Include="src\3DO\hardware\CelRenderer.c">
       <Filter>3DO\hardware</Filter>
     </ClCompile>
-    <ClCompile Include="src\project\main3DO.c">
-      <Filter>project</Filter>
-    </ClCompile>
-    <ClCompile Include="src\project\lesson1\main3DO_1.c">
-      <Filter>project\lesson1</Filter>
+    <ClCompile Include="src\project\lesson0\main3DO.c">
+      <Filter>project\lesson0</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -100,11 +97,8 @@
     <ClInclude Include="src\3DO\SDK\hardware.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="src\project\main3DO.h">
-      <Filter>project</Filter>
-    </ClInclude>
-    <ClInclude Include="src\project\lesson1\main3DO_1.h">
-      <Filter>project\lesson1</Filter>
+    <ClInclude Include="src\project\lesson0\main3DO.h">
+      <Filter>project\lesson0</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -120,8 +114,8 @@
     <Filter Include="project">
       <UniqueIdentifier>{cda817ff-928e-4365-87b9-7e7ecb5cc27c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="project\lesson1">
-      <UniqueIdentifier>{b42754db-32f5-4f10-8282-d33bd4f005ff}</UniqueIdentifier>
+    <Filter Include="project\lesson0">
+      <UniqueIdentifier>{8fd64098-9887-4ed7-8dd9-e1f49348d4d9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

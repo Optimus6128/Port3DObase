@@ -32,8 +32,7 @@
     <ClCompile Include="src\3DO\SDK\sintab.c" />
     <ClCompile Include="src\3DO\SDK\timerutils.c" />
     <ClCompile Include="src\main.c" />
-    <ClCompile Include="src\project\lesson1\main3DO_1.c" />
-    <ClCompile Include="src\project\main3DO.c" />
+    <ClCompile Include="src\project\lesson0\main3DO.c" />
     <ClCompile Include="src\tinyFPS.c" />
   </ItemGroup>
   <ItemGroup>
@@ -55,15 +54,14 @@
     <ClInclude Include="src\3DO\SDK\timerutils.h" />
     <ClInclude Include="src\3DO\SDK\types.h" />
     <ClInclude Include="src\main.h" />
-    <ClInclude Include="src\project\lesson1\main3DO_1.h" />
-    <ClInclude Include="src\project\main3DO.h" />
+    <ClInclude Include="src\project\lesson0\main3DO.h" />
     <ClInclude Include="src\tinyFPS.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{395DB8A5-F08D-4066-A632-83EE5E9C4472}</ProjectGuid>
     <RootNamespace>PallewSoft</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>Port3DObase</ProjectName>
+    <ProjectName>Port3DObase_lesson0</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -132,7 +130,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;$(SolutionDir)\src\project\lesson0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
@@ -161,7 +159,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;$(SolutionDir)\src\project\lesson0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>

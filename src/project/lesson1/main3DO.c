@@ -1,4 +1,4 @@
-#include "main3DO_1.h"
+#include "main3DO.h"
 #include "types.h"
 
 
@@ -113,7 +113,7 @@ void inputScript()
 }
 
 
-int main3DO_1()
+int main3DO()
 {
 	static bool hasInit = false;
 	if (!hasInit) {

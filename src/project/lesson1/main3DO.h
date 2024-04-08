@@ -1,5 +1,5 @@
-#ifndef MAIN_3DO_1_H
-#define MAIN_3DO_1_H
+#ifndef MAIN_3DO_H
+#define MAIN_3DO_H
 
 #include "stdio.h"
 #include "stdlib.h"
@@ -19,6 +19,6 @@
 #define SCREEN_SIZE_IN_BYTES (SCREEN_WIDTH * SCREEN_HEIGHT * 2)
 #define SCREEN_PAGES 2
 
-int main3DO_1();
+int main3DO();
 
 #endif
