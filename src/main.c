@@ -7,6 +7,8 @@
 #include "project/main3DO.h"
 
 #include "hardware.h"
+#include "event.h"
+#include "graphics.h"
 #include "types.h"
 
 

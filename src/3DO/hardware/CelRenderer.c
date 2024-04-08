@@ -66,6 +66,28 @@ static int getCelWoffset(CCB* cel)
 	return getWoffsetFromData(cel->ccb_PRE1, getCelBpp(cel));
 }
 
+static void pixelProcessorRender(CCB* cel, uint16* dst, uint16 color)
+{
+	if (color != 0) {
+		const uint32 pixc = cel->ccb_PIXC;
+		const uint16 p0 = (uint16)(pixc >> 16);
+		const uint16 p1 = (uint16)(pixc & 65535);
+
+		if (p0 == p1) {
+			switch (p0) {
+				case 0x1F00:
+					*dst = color;
+				break;
+
+				default:
+					*dst = color;
+				break;
+			}
+		} else {
+		}
+	}
+}
+
 static void unpackLine(uint8 *src, int bpp)
 {
 	// 2 bits:						6 bits:			data:
@@ -281,7 +303,7 @@ static inline void prepareEdgeListFlat(CelPoint *p0, CelPoint *p1)
 	} while (yp++ != y1);
 }
 
-static void drawFlatQuad(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* dst)
+static void drawFlatQuad(CCB *cel, CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* dst)
 {
 	const int x0 = p0->x; const int y0 = p0->y;
 	const int x1 = p1->x; const int y1 = p1->y;
@@ -315,7 +337,6 @@ static void drawFlatQuad(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3,
 	{
 		int xl = leftEdgeFlat[y];
 		int xr = rightEdgeFlat[y];
-		int offset;
 
 		if (xl < 0) xl = 0;
 		if (xr > SCREEN_W - 1) xr = SCREEN_W - 1;
@@ -327,14 +348,14 @@ static void drawFlatQuad(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3,
 		// I could do a check and flip x here, as it's just rendering single flat color, so one more swap would be easy
 		// EDIT: The above prepareEdgeListFlat twice does everything?
 
-		offset = (y >> 1) * SCREEN_W * 2 + (y & 1);
 		for (int x = xl; x < xr; ++x) {
-			*(dst + offset + (x<<1)) = color;
+			const int offset = (y >> 1) * SCREEN_W * 2 + (y & 1) + (x << 1);
+			pixelProcessorRender(cel, dst + offset, color);
 		}
 	}
 }
 
-static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* dst)
+static void splatTexel(CCB *cel, CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* dst)
 {
 	int x, y;
 	int xMin, yMin, xMax, yMax;
@@ -364,14 +385,14 @@ static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, u
 			for (x = xMin; x < xMax; ++x) {
 				if (x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H) {
 					const int offset = (y >> 1) * SCREEN_W * 2 + (y & 1) + (x << 1);
-					*(dst + offset) = color;
+					pixelProcessorRender(cel, dst + offset, color);
 				}
 			}
 		}
 	}
 }
 
-static void renderCelGridTexels(uint16* dst, int width, int height, int order, bool mariaFill)
+static void renderCelGridTexels(CCB *cel, uint16* dst, int width, int height, int order, bool mariaFill)
 {
 	int x, y;
 	CelPoint* celGridSrc = celGrid;
@@ -389,13 +410,13 @@ static void renderCelGridTexels(uint16* dst, int width, int height, int order, b
 				const bool skipFill = (p0->y == p1->y && p1->y == p2->y && p2->y == p3->y && p0->x == p1->x && p1->x == p2->x && p2->x == p3->x);
 				if (!mariaFill && !skipFill) {
 					#ifdef SPLAT_METHOD
-						splatTexel(p0, p1, p2, p3, color, dst);
+						splatTexel(cel, p0, p1, p2, p3, color, dst);
 					#else
 						if (order & ORDER_CW) {
-							drawFlatQuad(p0, p1, p3, p2, color, dst);
+							drawFlatQuad(cel, p0, p1, p3, p2, color, dst);
 						}
 						if (order & ORDER_CCW) {
-							drawFlatQuad(p2, p3, p1, p0, color, dst);
+							drawFlatQuad(cel, p2, p3, p1, p0, color, dst);
 						}
 					#endif
 				} else {
@@ -403,7 +424,7 @@ static void renderCelGridTexels(uint16* dst, int width, int height, int order, b
 					const int yp = p0->y;
 					if (xp >= 0 && xp < SCREEN_W && yp >= 0 && yp < SCREEN_H) {
 						const int offset = (yp >> 1) * SCREEN_W * 2 + (yp & 1) + (xp << 1);
-						*(dst + offset) = color;
+						pixelProcessorRender(cel, dst + offset, color);
 					}
 				}
 			}
@@ -488,7 +509,7 @@ static void renderCelPolygon(CCB* cel, uint16* dst)
 
 	// 40/50-136
 	//cel->ccb_Flags |= CCB_MARIA;
-	renderCelGridTexels(dst, width, height, order, cel->ccb_Flags & CCB_MARIA);
+	renderCelGridTexels(cel, dst, width, height, order, cel->ccb_Flags & CCB_MARIA);
 }
 
 static void renderCelSprite(CCB* cel, uint16* dst)
@@ -533,8 +554,7 @@ static void renderCelSprite(CCB* cel, uint16* dst)
 				const int xp = posX + x;
 				if (xp >= 0 && xp < SCREEN_W) {
 					const int offset = (yp >> 1) * SCREEN_W * 2 + (yp & 1) + (xp << 1);
-					const uint16 c = bitmapLine[x];
-					if (c!=0) *(dst + offset) = c;
+					pixelProcessorRender(cel, dst+offset, bitmapLine[x]);
 				}
 			}
 		}

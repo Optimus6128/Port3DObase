@@ -2,4 +2,10 @@
 
 void OpenAudioFolio()
 {
+	// Dummy
+}
+
+void CloseAudioFolio()
+{
+	// Dummy
 }
