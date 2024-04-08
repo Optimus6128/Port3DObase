@@ -32,6 +32,7 @@
     <ClCompile Include="src\3DO\SDK\sintab.c" />
     <ClCompile Include="src\3DO\SDK\timerutils.c" />
     <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\project\lesson1\main3DO_1.c" />
     <ClCompile Include="src\project\main3DO.c" />
     <ClCompile Include="src\tinyFPS.c" />
   </ItemGroup>
@@ -54,6 +55,7 @@
     <ClInclude Include="src\3DO\SDK\timerutils.h" />
     <ClInclude Include="src\3DO\SDK\types.h" />
     <ClInclude Include="src\main.h" />
+    <ClInclude Include="src\project\lesson1\main3DO_1.h" />
     <ClInclude Include="src\project\main3DO.h" />
     <ClInclude Include="src\tinyFPS.h" />
   </ItemGroup>

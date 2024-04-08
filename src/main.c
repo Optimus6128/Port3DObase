@@ -4,7 +4,8 @@
 #include "main.h"
 #include "tinyFPS.h"
 
-#include "project/main3DO.h"
+//#include "project/main3DO.h"
+#include "project/lesson1/main3DO_1.h"
 
 #include "hardware.h"
 #include "event.h"
@@ -226,7 +227,7 @@ int main()
 
 		updateInput();
 
-		main3DO();
+		main3DO_1();
 
 		render3DOscreen();
 

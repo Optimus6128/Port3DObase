@@ -42,6 +42,9 @@
     <ClCompile Include="src\project\main3DO.c">
       <Filter>project</Filter>
     </ClCompile>
+    <ClCompile Include="src\project\lesson1\main3DO_1.c">
+      <Filter>project\lesson1</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main.h" />
@@ -100,6 +103,9 @@
     <ClInclude Include="src\project\main3DO.h">
       <Filter>project</Filter>
     </ClInclude>
+    <ClInclude Include="src\project\lesson1\main3DO_1.h">
+      <Filter>project\lesson1</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3DO">
@@ -113,6 +119,9 @@
     </Filter>
     <Filter Include="project">
       <UniqueIdentifier>{cda817ff-928e-4365-87b9-7e7ecb5cc27c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="project\lesson1">
+      <UniqueIdentifier>{b42754db-32f5-4f10-8282-d33bd4f005ff}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
