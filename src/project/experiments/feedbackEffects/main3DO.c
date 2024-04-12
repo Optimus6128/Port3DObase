@@ -7,6 +7,8 @@ int main3DO()
 {
 	const int effectIndex = runEffectSelector(effectName, EFFECTS_NUM);
 
-	coreInit(effectInitFunc[effectIndex], CORE_DEFAULT | CORE_VRAM_BUFFERS(2) | CORE_OFFSCREEN_BUFFERS(4) | CORE_INIT_3D_ENGINE);
-	coreRun(effectRunFunc[effectIndex], true);
+	if (effectIndex >= 0) {
+		coreInit(effectInitFunc[effectIndex], CORE_DEFAULT | CORE_VRAM_BUFFERS(2) | CORE_OFFSCREEN_BUFFERS(4) | CORE_INIT_3D_ENGINE);
+		coreRun(effectRunFunc[effectIndex], true);
+	}
 }

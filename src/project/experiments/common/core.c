@@ -91,30 +91,36 @@ void updateLoadingBar(int bar, int status, int max)
 
 void coreInit(void(*initFunc)(), uint32 flags)
 {
-	bool mustInitEngine3D = (flags & CORE_INIT_3D_ENGINE) != 0;
-	bool mustInitEngine3D_soft = (flags & CORE_INIT_3D_ENGINE_SOFT) != 0;
-	
-	initSystem();
-	initGraphicsOptions(flags);
-	initInput();
-	initTools();
-	initMenu();
+	static bool coreWasInit = false;
 
-	if (mustInitEngine3D || mustInitEngine3D_soft) {
-		initEngine(mustInitEngine3D_soft);
+	if (!coreWasInit) {
+		bool mustInitEngine3D = (flags & CORE_INIT_3D_ENGINE) != 0;
+		bool mustInitEngine3D_soft = (flags & CORE_INIT_3D_ENGINE_SOFT) != 0;
+		
+		initSystem();
+		initGraphicsOptions(flags);
+		initInput();
+		initTools();
+		initMenu();
+
+		if (mustInitEngine3D || mustInitEngine3D_soft) {
+			initEngine(mustInitEngine3D_soft);
+		}
+
+		if (initFunc) {
+			initFunc();
+		}
+
+		showFps = (flags & CORE_SHOW_FPS);
+		showMem = (flags & CORE_SHOW_MEM);
+		showBuffers = (flags & CORE_SHOW_BUFFERS);
+		
+		defaultInput = (flags & CORE_DEFAULT_INPUT);
+
+		freeLoadingBars();
+
+		coreWasInit = true;
 	}
-
-	if (initFunc) {
-		initFunc();
-	}
-
-	showFps = (flags & CORE_SHOW_FPS);
-	showMem = (flags & CORE_SHOW_MEM);
-	showBuffers = (flags & CORE_SHOW_BUFFERS);
-	
-	defaultInput = (flags & CORE_DEFAULT_INPUT);
-
-	freeLoadingBars();
 }
 
 static void defaultInputScript()
@@ -149,8 +155,8 @@ void setShowBuffers(bool on)
 
 void coreRun(void(*mainLoopFunc)())
 {
-	while(true)
-	{
+	//while(true)
+	//{
 		updateInput();
 
 		defaultInputScript();
@@ -160,5 +166,5 @@ void coreRun(void(*mainLoopFunc)())
 		displaySystemInfo();
 
 		displayScreen();
-	}
+	//}
 }

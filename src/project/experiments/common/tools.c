@@ -280,50 +280,65 @@ static void renderEffectSelectorBar(int px, int py, int length)
 	drawCels(selectionBarCel);
 }
 
+static void initEffectSelector()
+{
+	static bool effectSelectorWasInit = false;
+
+	if (!effectSelectorWasInit) {
+		const int px = 24;
+		const int py = 16;
+
+		coreInit(NULL, CORE_VRAM_SINGLEBUFFER | CORE_NO_CLEAR_FRAME);
+
+		// Display menu once
+		for (i=0; i<size; ++i) {
+			drawText(px, py+i*TINY_FONT_WIDTH, str[i]);
+		}
+		renderEffectSelectorBar(px, py, strlen(str[selection])*TINY_FONT_WIDTH);
+
+		effectSelectorWasInit = true;
+	}
+}
+
 int runEffectSelector(char **str, int size)
 {
-	int i;
-	int selection = 0;
-	const int px = 24;
-	const int py = 16;
+	static int selected = -1;
+	static int selection = 0;
 
-	coreInit(NULL, CORE_VRAM_SINGLEBUFFER | CORE_NO_CLEAR_FRAME);
+	initEffectSelector();
 
-	// Display menu once
-	for (i=0; i<size; ++i) {
-		drawText(px, py+i*TINY_FONT_WIDTH, str[i]);
+	if (selected < 0) {
+		//do {
+			int moveOffset = 0;
+
+			updateInput();
+
+			if (isJoyButtonPressedOnce(JOY_BUTTON_UP)) {
+				if (selection > 0) {
+					moveOffset = -1;
+				}
+			}
+			if (isJoyButtonPressedOnce(JOY_BUTTON_DOWN)) {
+				if (selection < size-1) {
+					moveOffset = 1;
+				}
+			}
+			if (isJoyButtonPressedOnce(JOY_BUTTON_A) || isJoyButtonPressedOnce(JOY_BUTTON_START)) {
+				DeleteCel(selectionBarCel);
+				deInitGraphics();
+				selected = selection;
+			}
+
+			if (moveOffset!=0) {
+				renderEffectSelectorBar(px, py + selection*TINY_FONT_WIDTH, strlen(str[selection])*TINY_FONT_WIDTH);
+				selection += moveOffset;
+				renderEffectSelectorBar(px, py + selection*TINY_FONT_WIDTH, strlen(str[selection])*TINY_FONT_WIDTH);
+			}
+
+			displayScreen();
+		//} while(true);
 	}
-	renderEffectSelectorBar(px, py, strlen(str[selection])*TINY_FONT_WIDTH);
-
-	do {
-		int moveOffset = 0;
-
-		updateInput();
-
-		if (isJoyButtonPressedOnce(JOY_BUTTON_UP)) {
-			if (selection > 0) {
-				moveOffset = -1;
-			}
-		}
-		if (isJoyButtonPressedOnce(JOY_BUTTON_DOWN)) {
-			if (selection < size-1) {
-				moveOffset = 1;
-			}
-		}
-		if (isJoyButtonPressedOnce(JOY_BUTTON_A) || isJoyButtonPressedOnce(JOY_BUTTON_START)) {
-			DeleteCel(selectionBarCel);
-			deInitGraphics();
-			return selection;
-		}
-
-		if (moveOffset!=0) {
-			renderEffectSelectorBar(px, py + selection*TINY_FONT_WIDTH, strlen(str[selection])*TINY_FONT_WIDTH);
-			selection += moveOffset;
-			renderEffectSelectorBar(px, py + selection*TINY_FONT_WIDTH, strlen(str[selection])*TINY_FONT_WIDTH);
-		}
-
-		displayScreen();
-	} while(true);
+	return selected;
 }
 
 uint16 shadeColor(uint16 c, int shade)	// dark=0, bright=256
