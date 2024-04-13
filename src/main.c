@@ -12,6 +12,7 @@ static ScreenBuffer screenSDL;
 
 static bool fpsDisplay = false;
 static bool vsync = false;
+static bool wasInputUpdateCalled = false;
 
 #define MAP_3DO_JOY_BUTTON_UP			SDLK_UP
 #define MAP_3DO_JOY_BUTTON_UP_ALT		SDLK_KP_8
@@ -29,135 +30,36 @@ static bool vsync = false;
 #define MAP_3DO_JOY_BUTTON_SELECT		SDLK_RSHIFT
 #define MAP_3DO_JOY_BUTTON_START		SDLK_RETURN
 
-void updateInputSDL(ControlPadEventData *controlPadEventData3DO)
+
+static void basicInputSDL(SDL_Event *event)
 {
 	static int quit = false;
-	SDL_Event event;
 
-	while (SDL_PollEvent(&event))
+	switch (event->type)
 	{
-		switch (event.type)
+		case SDL_QUIT:
+			quit = true;
+		break;
+
+		case SDL_KEYUP:
+		case SDL_KEYDOWN:
 		{
-			case SDL_QUIT:
+			const int key = event->key.keysym.sym;
+			switch (key)
+			{
+			case SDLK_ESCAPE:
 				quit = true;
 				break;
 
-			case SDL_KEYUP:
-			case SDL_KEYDOWN:
-			{
-				const int key = event.key.keysym.sym;
-				switch (key)
-				{
-					case SDLK_ESCAPE:
-						quit = true;
-						break;
+			case SDLK_p:
+				if (event->type == SDL_KEYDOWN) {
+					vsync = !vsync;
+				}
+				break;
 
-					case SDLK_p:
-						if (event.type == SDL_KEYDOWN) {
-							vsync = !vsync;
-						}
-						break;
-
-					case SDLK_f:
-						if (event.type == SDL_KEYDOWN) {
-							fpsDisplay = !fpsDisplay;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_UP:
-					case MAP_3DO_JOY_BUTTON_UP_ALT:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlUp;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlUp;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_DOWN:
-					case MAP_3DO_JOY_BUTTON_DOWN_ALT:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlDown;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlDown;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_LEFT:
-					case MAP_3DO_JOY_BUTTON_LEFT_ALT:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlLeft;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlLeft;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_RIGHT:
-					case MAP_3DO_JOY_BUTTON_RIGHT_ALT:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlRight;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlRight;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_A:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlA;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlA;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_B:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlB;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlB;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_C:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlC;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlC;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_LPAD:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlLeftShift;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlLeftShift;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_RPAD:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlRightShift;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlRightShift;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_SELECT:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlX;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlX;
-						}
-						break;
-
-					case MAP_3DO_JOY_BUTTON_START:
-						if (event.type == SDL_KEYDOWN) {
-							controlPadEventData3DO->cped_ButtonBits |= ControlStart;
-						} else {
-							controlPadEventData3DO->cped_ButtonBits &= ~ControlStart;
-						}
-						break;
-
-					default:
-						break;
+			case SDLK_f:
+				if (event->type == SDL_KEYDOWN) {
+					fpsDisplay = !fpsDisplay;
 				}
 				break;
 
@@ -165,12 +67,148 @@ void updateInputSDL(ControlPadEventData *controlPadEventData3DO)
 				break;
 			}
 		}
-	}
+		break;
 
+		default:
+			break;
+	}
 	if (quit) {
 		SDL_Quit();
 		exit(0);
 	}
+}
+
+void update3DOinputSDL(ControlPadEventData *controlPadEventData3DO)
+{
+	static SDL_Event event;
+
+	while (SDL_PollEvent(&event))
+	{
+		switch (event.type)
+		{
+			case SDL_KEYUP:
+			case SDL_KEYDOWN:
+			{
+				const int key = event.key.keysym.sym;
+				switch (key)
+				{
+				case MAP_3DO_JOY_BUTTON_UP:
+				case MAP_3DO_JOY_BUTTON_UP_ALT:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlUp;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlUp;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_DOWN:
+				case MAP_3DO_JOY_BUTTON_DOWN_ALT:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlDown;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlDown;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_LEFT:
+				case MAP_3DO_JOY_BUTTON_LEFT_ALT:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlLeft;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlLeft;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_RIGHT:
+				case MAP_3DO_JOY_BUTTON_RIGHT_ALT:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlRight;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlRight;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_A:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlA;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlA;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_B:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlB;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlB;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_C:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlC;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlC;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_LPAD:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlLeftShift;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlLeftShift;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_RPAD:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlRightShift;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlRightShift;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_SELECT:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlX;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlX;
+					}
+					break;
+
+				case MAP_3DO_JOY_BUTTON_START:
+					if (event.type == SDL_KEYDOWN) {
+						controlPadEventData3DO->cped_ButtonBits |= ControlStart;
+					}
+					else {
+						controlPadEventData3DO->cped_ButtonBits &= ~ControlStart;
+					}
+					break;
+
+				default:
+					break;
+				}
+				break;
+			}
+
+			default:
+				break;
+		}
+
+		// Separate SDL window events (like escape closing the PC app) from 3DO specific input updates
+		basicInputSDL(&event);
+	}
+	wasInputUpdateCalled = true;
 }
 
 static void screenInit(int width, int height)
@@ -230,6 +268,16 @@ void update3DOscreenSDL(uint16 *vram3DOptr, VDLmapColor *VDLmap)
 		do {} while (SDL_GetTicks() - timeTicks < 20);
 	}
 	timeTicks = SDL_GetTicks();
+
+	// Necessary hack in case a very basic 3DO project renders something but never calls the Update Controller functions from 3DO SDK as I also need to detect escape for app exit (like in lesson0.c)
+	if (!wasInputUpdateCalled) {
+		static SDL_Event event;
+		while (SDL_PollEvent(&event))
+		{
+			basicInputSDL(&event);
+		}
+	}
+	wasInputUpdateCalled = false;
 }
 
 int main()

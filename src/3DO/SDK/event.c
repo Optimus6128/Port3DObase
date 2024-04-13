@@ -15,7 +15,7 @@ void InitEventUtility(int32 numControlPads, int32 numMice, int32 focusListener)
 
 Err GetControlPad(int32 padNumber, int32 wait, ControlPadEventData* data)
 {
-	updateInputSDL(&globalControlPadEventData);
+	update3DOinputSDL(&globalControlPadEventData);
 	memcpy(data, &globalControlPadEventData, sizeof(ControlPadEventData));
 	return 0;
 }
