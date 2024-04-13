@@ -92,111 +92,100 @@ void update3DOinputSDL(ControlPadEventData *controlPadEventData3DO)
 				const int key = event.key.keysym.sym;
 				switch (key)
 				{
-				case MAP_3DO_JOY_BUTTON_UP:
-				case MAP_3DO_JOY_BUTTON_UP_ALT:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlUp;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlUp;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_UP:
+					case MAP_3DO_JOY_BUTTON_UP_ALT:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlUp;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlUp;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_DOWN:
-				case MAP_3DO_JOY_BUTTON_DOWN_ALT:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlDown;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlDown;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_DOWN:
+					case MAP_3DO_JOY_BUTTON_DOWN_ALT:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlDown;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlDown;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_LEFT:
-				case MAP_3DO_JOY_BUTTON_LEFT_ALT:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlLeft;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlLeft;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_LEFT:
+					case MAP_3DO_JOY_BUTTON_LEFT_ALT:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlLeft;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlLeft;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_RIGHT:
-				case MAP_3DO_JOY_BUTTON_RIGHT_ALT:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlRight;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlRight;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_RIGHT:
+					case MAP_3DO_JOY_BUTTON_RIGHT_ALT:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlRight;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlRight;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_A:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlA;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlA;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_A:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlA;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlA;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_B:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlB;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlB;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_B:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlB;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlB;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_C:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlC;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlC;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_C:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlC;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlC;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_LPAD:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlLeftShift;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlLeftShift;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_LPAD:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlLeftShift;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlLeftShift;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_RPAD:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlRightShift;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlRightShift;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_RPAD:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlRightShift;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlRightShift;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_SELECT:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlX;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlX;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_SELECT:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlX;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlX;
+						}
+						break;
 
-				case MAP_3DO_JOY_BUTTON_START:
-					if (event.type == SDL_KEYDOWN) {
-						controlPadEventData3DO->cped_ButtonBits |= ControlStart;
-					}
-					else {
-						controlPadEventData3DO->cped_ButtonBits &= ~ControlStart;
-					}
-					break;
+					case MAP_3DO_JOY_BUTTON_START:
+						if (event.type == SDL_KEYDOWN) {
+							controlPadEventData3DO->cped_ButtonBits |= ControlStart;
+						} else {
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlStart;
+						}
+						break;
 
-				default:
-					break;
+					default:
+						break;
 				}
 				break;
 			}
