@@ -11,16 +11,13 @@ static int visibleScreenPage = 0;
 static void initGraphics()
 {
 	int i;
-	static bool hasInitGraphics = false;
 
-	if (!hasInitGraphics) {
-		CreateBasicDisplay(&screen, DI_TYPE_DEFAULT, SCREEN_PAGES);
-		for (i = 0; i < SCREEN_PAGES; i++)
-		{
-			bitmapItems[i] = screen.sc_BitmapItems[i];
-			bitmaps[i] = screen.sc_Bitmaps[i];
-		}
-		hasInitGraphics = true;
+	CreateBasicDisplay(&screen, DI_TYPE_DEFAULT, SCREEN_PAGES);
+
+	for(i=0; i<SCREEN_PAGES; i++)
+	{
+		bitmapItems[i] = screen.sc_BitmapItems[i];
+		bitmaps[i] = screen.sc_Bitmaps[i];
 	}
 }
 
@@ -42,9 +39,9 @@ int main3DO()
 {
 	initGraphics();
 
-	//while(true) {
+	while(true) {
 		clearScreen(rand());
 		display();
-	//}
+	}
 	return 0;
 }

@@ -6,19 +6,12 @@
 
 #include "main3DO.h"
 
-#include "hardware.h"
-#include "event.h"
-#include "graphics.h"
-#include "types.h"
-
-
-static bool quit = false;
-static bool vsync = false;
-
 static SDL_Surface *surface;
 static SDL_Window *window;
 static ScreenBuffer screenSDL;
 
+static bool fpsDisplay = false;
+static bool vsync = false;
 
 #define MAP_3DO_JOY_BUTTON_UP			SDLK_UP
 #define MAP_3DO_JOY_BUTTON_UP_ALT		SDLK_KP_8
@@ -36,8 +29,9 @@ static ScreenBuffer screenSDL;
 #define MAP_3DO_JOY_BUTTON_SELECT		SDLK_RSHIFT
 #define MAP_3DO_JOY_BUTTON_START		SDLK_RETURN
 
-static void updateInput()
+void updateInputSDL(ControlPadEventData *controlPadEventData3DO)
 {
+	static int quit = false;
 	SDL_Event event;
 
 	while (SDL_PollEvent(&event))
@@ -64,95 +58,101 @@ static void updateInput()
 						}
 						break;
 
+					case SDLK_f:
+						if (event.type == SDL_KEYDOWN) {
+							fpsDisplay = !fpsDisplay;
+						}
+						break;
+
 					case MAP_3DO_JOY_BUTTON_UP:
 					case MAP_3DO_JOY_BUTTON_UP_ALT:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlUp;
+							controlPadEventData3DO->cped_ButtonBits |= ControlUp;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlUp;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlUp;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_DOWN:
 					case MAP_3DO_JOY_BUTTON_DOWN_ALT:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlDown;
+							controlPadEventData3DO->cped_ButtonBits |= ControlDown;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlDown;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlDown;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_LEFT:
 					case MAP_3DO_JOY_BUTTON_LEFT_ALT:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlLeft;
+							controlPadEventData3DO->cped_ButtonBits |= ControlLeft;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlLeft;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlLeft;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_RIGHT:
 					case MAP_3DO_JOY_BUTTON_RIGHT_ALT:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlRight;
+							controlPadEventData3DO->cped_ButtonBits |= ControlRight;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlRight;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlRight;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_A:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlA;
+							controlPadEventData3DO->cped_ButtonBits |= ControlA;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlA;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlA;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_B:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlB;
+							controlPadEventData3DO->cped_ButtonBits |= ControlB;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlB;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlB;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_C:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlC;
+							controlPadEventData3DO->cped_ButtonBits |= ControlC;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlC;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlC;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_LPAD:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlLeftShift;
+							controlPadEventData3DO->cped_ButtonBits |= ControlLeftShift;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlLeftShift;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlLeftShift;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_RPAD:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlRightShift;
+							controlPadEventData3DO->cped_ButtonBits |= ControlRightShift;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlRightShift;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlRightShift;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_SELECT:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlX;
+							controlPadEventData3DO->cped_ButtonBits |= ControlX;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlX;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlX;
 						}
 						break;
 
 					case MAP_3DO_JOY_BUTTON_START:
 						if (event.type == SDL_KEYDOWN) {
-							globalControlPadEventData.cped_ButtonBits |= ControlStart;
+							controlPadEventData3DO->cped_ButtonBits |= ControlStart;
 						} else {
-							globalControlPadEventData.cped_ButtonBits &= ~ControlStart;
+							controlPadEventData3DO->cped_ButtonBits &= ~ControlStart;
 						}
 						break;
 
@@ -166,6 +166,11 @@ static void updateInput()
 			}
 		}
 	}
+
+	if (quit) {
+		SDL_Quit();
+		exit(0);
+	}
 }
 
 static void screenInit(int width, int height)
@@ -174,7 +179,7 @@ static void screenInit(int width, int height)
 	const int desktopScreenWidth = 1920;
 	const int desktopScreenHeight = 1080;
 
-	window = SDL_CreateWindow("Port3DObase - lesson 0", (desktopScreenWidth - width) / 2, (desktopScreenHeight - height) / 2, width, height, 0);
+	window = SDL_CreateWindow("Bizarro Engine", (desktopScreenWidth - width) / 2, (desktopScreenHeight - height) / 2, width, height, 0);
 	surface = SDL_GetWindowSurface(window);
 
 	screenSDL.width = surface->w;
@@ -182,9 +187,8 @@ static void screenInit(int width, int height)
 	screenSDL.vram = (unsigned int*)surface->pixels;
 }
 
-static void render3DOscreen()
+static void render3DOscreen(uint16 *src, VDLmapColor *VDLmap)
 {
-	uint16* src = vram3DOptr;
 	uint32* dst = screenSDL.vram;
 	const int screenWidth = screenSDL.width;
 
@@ -192,7 +196,7 @@ static void render3DOscreen()
 		const int py = y / SCREEN_SCALE;
 		for (int x = 0; x < SDL_SCREEN_WIDTH; x += SCREEN_SCALE) {
 			const int px = x / SCREEN_SCALE;
-			const int offset = (py >> 1) * SCREEN_WIDTH * 2 + (py & 1) + (px << 1);
+			const int offset = (py >> 1) * SCREEN_WIDTH_3DO * 2 + (py & 1) + (px << 1);
 			const uint16 c = *(src + offset);
 
 			const int r = VDLmap[(c >> 10) & 31].r;
@@ -210,35 +214,32 @@ static void render3DOscreen()
 	}
 }
 
+void update3DOscreenSDL(uint16 *vram3DOptr, VDLmapColor *VDLmap)
+{
+	static int timeTicks;
+
+	render3DOscreen(vram3DOptr, VDLmap);
+
+	if (fpsDisplay) {
+		drawFps(&screenSDL, SDL_GetTicks(), 4, SDL_SCREEN_HEIGHT - 32, 4);
+	}
+
+	SDL_UpdateWindowSurface(window);
+
+	if (vsync) {
+		do {} while (SDL_GetTicks() - timeTicks < 20);
+	}
+	timeTicks = SDL_GetTicks();
+}
+
 int main()
 {
-	int timeTicks;
-
 	SDL_Init(SDL_INIT_EVERYTHING);
 	screenInit(SDL_SCREEN_WIDTH, SDL_SCREEN_HEIGHT);
 
 	initFpsFonts();
 
-	do {
-		timeTicks = SDL_GetTicks();
-
-		updateInput();
-
-		main3DO();
-
-		render3DOscreen();
-
-		drawFps(&screenSDL, timeTicks, 4, SDL_SCREEN_HEIGHT - 32, 4);
-
-		SDL_UpdateWindowSurface(window);
-
-		if (vsync) {
-			do {} while (SDL_GetTicks() - timeTicks < 20);
-		}
-	} while (!quit);
-
-
-	SDL_Quit();
+	main3DO();
 
     return 0;
 }

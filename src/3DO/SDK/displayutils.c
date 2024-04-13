@@ -7,16 +7,6 @@
 #include <string.h>
 
 
-static void initVDLmap()
-{
-	int i;
-	for (i = 0; i < 32; ++i) {
-		VDLmap[i].r = i << 3;
-		VDLmap[i].g = i << 3;
-		VDLmap[i].b = i << 3;
-	}
-}
-
 Item CreateBasicDisplay(ScreenContext* sc, uint32 displayType, uint32 numScreens)
 {
 	uint32 i;

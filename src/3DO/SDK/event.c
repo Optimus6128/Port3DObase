@@ -1,5 +1,7 @@
 #include "event.h"
 
+#include "../main.h"
+
 #include <string.h>
 
 
@@ -13,6 +15,7 @@ void InitEventUtility(int32 numControlPads, int32 numMice, int32 focusListener)
 
 Err GetControlPad(int32 padNumber, int32 wait, ControlPadEventData* data)
 {
+	updateInputSDL(&globalControlPadEventData);
 	memcpy(data, &globalControlPadEventData, sizeof(ControlPadEventData));
 	return 0;
 }

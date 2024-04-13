@@ -39,10 +39,6 @@ typedef struct MouseEventData {
 	int32          med_VertPosition;
 } MouseEventData;
 
-// Hacky externs for main.c to alter input events
-extern ControlPadEventData globalControlPadEventData;
-extern MouseEventData globalMouseEventData;
-
 void InitEventUtility(int32 numControlPads, int32 numMice, int32 focusListener);
 
 Err GetControlPad(int32 padNumber, int32 wait, ControlPadEventData* data);

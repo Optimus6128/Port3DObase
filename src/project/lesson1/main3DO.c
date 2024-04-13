@@ -115,16 +115,12 @@ void inputScript()
 
 int main3DO()
 {
-	static bool hasInit = false;
-	if (!hasInit) {
-		initSystem();
-		initGraphics();
-		hasInit = true;
-	}
+	initSystem();
+	initGraphics();
 
-	//while(true) {
+	while(true) {
 		inputScript();
 		display();
-	//}
+	}
 	return 0;
 }

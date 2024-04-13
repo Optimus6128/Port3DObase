@@ -18,7 +18,7 @@ typedef struct CelPoint
 #define ORDER_CW	(1<<0)
 #define ORDER_CCW	(1<<1)
 
-#define SPLAT_METHOD
+#define SPLAT_PRECISE_TEXEL
 
 
 typedef struct PIXCinfo
@@ -39,10 +39,6 @@ static uint16 bitmapLine[MAX_TEXTURE_SIZE+1];
 static uint32 unpackedSrc[MAX_TEXTURE_SIZE+1];
 
 static CelPoint celGrid[(MAX_TEXTURE_SIZE+1) * (MAX_TEXTURE_SIZE+1)];
-
-static int leftEdgeFlat[SCREEN_H];
-static int rightEdgeFlat[SCREEN_H];
-
 
 
 static int getCelWidth(CCB *cel)
@@ -324,95 +320,12 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 	}
 }
 
-
-// ======== Specialized functions for simpler flat quad rasterizer ========
-
-static inline void prepareEdgeListFlat(CelPoint *p0, CelPoint *p1)
+static bool pointInsideQuad(int x, int y, CelPoint* p0, CelPoint* p1, CelPoint* p2, CelPoint* p3)
 {
-	if (p0->y == p1->y) return;
-
-	// Assumes CCW
-	int *edgeListToWriteFlat;
-	if (p0->y < p1->y) {
-		edgeListToWriteFlat = leftEdgeFlat;
-	}
-	else {
-		edgeListToWriteFlat = rightEdgeFlat;
-
-		CelPoint *pTemp = p0;
-		p0 = p1;
-		p1 = pTemp;
-	}
-
-	const int x0 = p0->x; const int y0 = p0->y;
-	const int x1 = p1->x; const int y1 = p1->y;
-
-	const int screenHeight = SCREEN_H;
-	const int dx = ((x1 - x0) << FP_RAST) / (y1 - y0);
-
-	int xp = x0 << FP_RAST;
-	int yp = y0;
-	do
-	{
-		if (yp >= 0 && yp < screenHeight)
-		{
-			edgeListToWriteFlat[yp] = xp >> FP_RAST;
-		}
-		xp += dx;
-
-	} while (yp++ != y1);
-}
-
-static void drawFlatQuad(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* dst, PIXCinfo *info)
-{
-	const int x0 = p0->x; const int y0 = p0->y;
-	const int x1 = p1->x; const int y1 = p1->y;
-	const int x2 = p2->x; const int y2 = p2->y;
-	const int x3 = p3->x; const int y3 = p3->y;
-
-	int yMin = y0;
-	int yMax = yMin;
-	if (y1 < yMin) yMin = y1;
-	if (y1 > yMax) yMax = y1;
-	if (y2 < yMin) yMin = y2;
-	if (y2 > yMax) yMax = y2;
-	if (y3 < yMin) yMin = y3;
-	if (y3 > yMax) yMax = y3;
-
-	if (yMin < 0) yMin = 0;
-	if (yMax > SCREEN_H - 1) yMax = SCREEN_H - 1;
-
-	//prepareEdgeListFlat(p0, p1);
-	//prepareEdgeListFlat(p1, p2);
-	//prepareEdgeListFlat(p2, p3);
-	//prepareEdgeListFlat(p3, p0);
-
-	// Why twice? This alone works for now.
-	prepareEdgeListFlat(p1, p0);
-	prepareEdgeListFlat(p2, p1);
-	prepareEdgeListFlat(p3, p2);
-	prepareEdgeListFlat(p0, p3);
-
-	for (int y = yMin; y <= yMax; y++)
-	{
-		int xl = leftEdgeFlat[y];
-		int xr = rightEdgeFlat[y];
-
-		if (xl < 0) xl = 0;
-		if (xr > SCREEN_W - 1) xr = SCREEN_W - 1;
-
-		if (xl == xr) ++xr;
-
-		// prepareEdgeListFlat assumes CCW
-		// If quad is clockwise, following the grid texel quads in clockwise is easy. But that will change in bizarro polygono
-		// I could do a check and flip x here, as it's just rendering single flat color, so one more swap would be easy
-		// EDIT: The above prepareEdgeListFlat twice does everything?
-
-		for (int x = xl; x < xr; ++x) {
-			const int offset = (y >> 1) * SCREEN_W * 2 + (y & 1) + (x << 1);
-			pixelProcessorRender(dst + offset, color, info);
-		}
-	}
+	return	((y - p0->y) * (p1->x - p0->x) - (x - p0->x) * (p1->y - p0->y) >= 0) &&
+			((y - p1->y) * (p2->x - p1->x) - (x - p1->x) * (p2->y - p1->y) >= 0) &&
+			((y - p2->y) * (p3->x - p2->x) - (x - p2->x) * (p3->y - p2->y) >= 0) &&
+			((y - p3->y) * (p0->x - p3->x) - (x - p3->x) * (p0->y - p3->y) >= 0);
 }
 
 static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* dst, PIXCinfo *info)
@@ -444,8 +357,14 @@ static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, u
 		for (y = yMin; y < yMax; ++y) {
 			for (x = xMin; x < xMax; ++x) {
 				if (x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H) {
-					const int offset = (y >> 1) * SCREEN_W * 2 + (y & 1) + (x << 1);
-					pixelProcessorRender(dst + offset, color, info);
+					#ifdef SPLAT_PRECISE_TEXEL
+						if (pointInsideQuad(x,y, p0,p1,p2,p3)) {
+					#endif
+							const int offset = (y >> 1) * SCREEN_W * 2 + (y & 1) + (x << 1);
+							pixelProcessorRender(dst + offset, color, info);
+					#ifdef SPLAT_PRECISE_TEXEL
+						}
+					#endif
 				}
 			}
 		}
@@ -467,18 +386,13 @@ static void renderCelGridTexels(uint16* dst, int width, int height, int order, b
 				CelPoint* p2 = &celGridSrc[gridWoffset];
 				CelPoint* p3 = &celGridSrc[gridWoffset + 1];
 
-				const bool skipFill = (p0->y == p1->y && p1->y == p2->y && p2->y == p3->y && p0->x == p1->x && p1->x == p2->x && p2->x == p3->x);
-				if (!mariaFill && !skipFill) {
-					#ifdef SPLAT_METHOD
-						splatTexel(p0, p1, p2, p3, color, dst, info);
-					#else
-						if (order & ORDER_CW) {
-							drawFlatQuad(p0, p1, p3, p2, color, dst, info);
-						}
-						if (order & ORDER_CCW) {
-							drawFlatQuad(p2, p3, p1, p0, color, dst, info);
-						}
-					#endif
+				if (!mariaFill) {
+					if (order & ORDER_CW) {
+						splatTexel(p0, p1, p3, p2, color, dst, info);
+					}
+					if (order & ORDER_CCW) {
+						splatTexel(p2, p3, p1, p0, color, dst, info);
+					}
 				} else {
 					const int xp = p0->x;
 					const int yp = p0->y;

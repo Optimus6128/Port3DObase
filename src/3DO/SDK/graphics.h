@@ -87,9 +87,7 @@ typedef struct VDLmapColor
 	uint8 r, g, b;
 }VDLmapColor;
 
-// Hacky externs for main.c to render screen or alter input events
-extern uint16* vram3DOptr;
-extern VDLmapColor VDLmap[32];
+void initVDLmap();
 
 void DisplayScreen(Item screenItem0, Item screenItem1);
 void SetScreenColors(Item screenItem, uint32* entries, int32 count);

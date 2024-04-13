@@ -1,15 +1,29 @@
 #include "graphics.h"
+
+#include <SDL2/SDL.h>
+
+#include "../main.h"
 #include "hardware/CelRenderer.h"
 
 #include <stdlib.h>
 
-uint16* vram3DOptr;
-VDLmapColor VDLmap[32];
+static VDLmapColor VDLmap[32];
+
+void initVDLmap()
+{
+	int i;
+	for (i = 0; i < 32; ++i) {
+		VDLmap[i].r = i << 3;
+		VDLmap[i].g = i << 3;
+		VDLmap[i].b = i << 3;
+	}
+}
 
 void DisplayScreen(Item screenItem0, Item screenItem1)
 {
 	Bitmap* bitmap = (Bitmap*)screenItem0;
-	vram3DOptr = (uint16*)bitmap->bm_Buffer;
+
+	update3DOscreenSDL((uint16*)bitmap->bm_Buffer, VDLmap);
 }
 
 void SetScreenColors(Item screenItem, uint32 *entries, int32 count)
@@ -89,7 +103,10 @@ Item GetVBLIOReq()
 
 void WaitVBL (Item ioreq, uint32 numfields)
 {
-	// Dummy
+	static int timeTicks = 0;
+
+	do {} while (SDL_GetTicks() - timeTicks < 20);
+	timeTicks = SDL_GetTicks();
 }
 
 void DeleteItem(Item i)
