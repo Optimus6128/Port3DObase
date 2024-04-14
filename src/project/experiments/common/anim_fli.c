@@ -2,6 +2,8 @@
 #include "file_utils.h"
 #include "tools.h"
 
+//#define FLI_UPDATE_FULL_FRAME_ASM
+
 void FLIupdateFullFrame(uint16 *dst, uint32 *vga_pal, uint32 *vga32);
 
 static bool shouldUpdateFullFrame;
@@ -77,7 +79,7 @@ void FliBrun(AnimFLI *anim)
 
 	anim->firstFrameSize = anim->FRMhdr.size;
 
-	for (y=0; y<anim->FLIhdr.height; y++) {
+	for (y=0; y<(int)anim->FLIhdr.height; y++) {
 		const unsigned char packets = fliBuffer[anim->dataIndex++];
 		for (i=0; i<packets; i++) {
 			int8 size_count = (int8)fliBuffer[anim->dataIndex++];
@@ -114,7 +116,7 @@ void FliLc(AnimFLI *anim)
 	anim->yline += lines_skip;
 	vi = anim->yline * VGA_WIDTH;
 
-	for (i=0; i<lines_chng; i++) {
+	for (i=0; i<(int)lines_chng; i++) {
 		const unsigned char packets = fliBuffer[anim->dataIndex++];
 
 		for (n=0; n<packets; n++) {
@@ -236,6 +238,18 @@ static void streamNextBlock(AnimFLI *anim, int size)
 	}
 }*/
 
+void FLIupdateFullFrameSlow(uint16* dst, uint32* vga_pal, uint32* vga32)
+{
+	int count = (VGA_WIDTH * VGA_HEIGHT) / 4;
+	uint32* dst32 = (uint32*)dst;
+	do {
+		const uint32 c = *vga32++;
+
+		*dst32++ = vga_pal[(c >> 24) & 255] | (vga_pal[(c >> 16) & 255] >> PAL_PAD_BITS);
+		*dst32++ = vga_pal[(c >> 8) & 255] | (vga_pal[c & 255] >> PAL_PAD_BITS);
+	} while (--count > 0);
+}
+
 void FLIplayNextFrame(AnimFLI *anim)
 {
 	int i;
@@ -253,7 +267,7 @@ void FLIplayNextFrame(AnimFLI *anim)
 	// Main chunk decoding loop
 	anim->yline=0;
 	shouldUpdateFullFrame = false;
-	for (i=0; i<anim->FRMhdr.chunks; i++)
+	for (i=0; i<(int)anim->FRMhdr.chunks; i++)
 	{
 		ReadChunkHDR(anim);
 		DoType(anim);
@@ -275,7 +289,11 @@ void FLIplayNextFrame(AnimFLI *anim)
 
 	// Make a full frame copy from vga buffer to 16bpp CEL if necessary
 	if (shouldUpdateFullFrame) {
-		FLIupdateFullFrame(anim->bmp, anim->vga_pal, (uint32*)anim->vga_screen);
+		#ifdef FLI_UPDATE_FULL_FRAME_ASM
+			FLIupdateFullFrame(anim->bmp, anim->vga_pal, (uint32*)anim->vga_screen);
+		#else
+			FLIupdateFullFrameSlow(anim->bmp, anim->vga_pal, (uint32*)anim->vga_screen);
+		#endif
 	}
 }
 

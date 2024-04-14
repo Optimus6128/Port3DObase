@@ -1,0 +1,139 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="3DO">
+      <UniqueIdentifier>{831dacb5-5c8d-49a3-87a9-cc6434b7fef1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3DO\SDK">
+      <UniqueIdentifier>{e38bf020-ab3e-454d-bfbf-be6f996a327d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3DO\hardware">
+      <UniqueIdentifier>{5525b215-6c34-4906-9810-09abb5679956}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="project">
+      <UniqueIdentifier>{cda817ff-928e-4365-87b9-7e7ecb5cc27c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="project\lesson0">
+      <UniqueIdentifier>{8fd64098-9887-4ed7-8dd9-e1f49348d4d9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main3DO.c">
+      <Filter>project\lesson0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\main.c" />
+    <ClCompile Include="..\..\tinyFPS.c" />
+    <ClCompile Include="..\..\3DO\hardware\CelRenderer.c">
+      <Filter>3DO\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\audio.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\celutils.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\displayutils.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\event.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\form3DO.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\graphics.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\io.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\mem.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\operamath.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\sintab.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\soundfile.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\task.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3DO\SDK\timerutils.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="main3DO.h">
+      <Filter>project\lesson0</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\main.h" />
+    <ClInclude Include="..\..\tinyFPS.h" />
+    <ClInclude Include="..\..\3DO\hardware\CelRenderer.h">
+      <Filter>3DO\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\3dlib.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\audio.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\celutils.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\displayutils.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\event.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\filestream.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\filestreamfunctions.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\form3DO.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\graphics.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\hardware.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\io.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\mem.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\music.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\operamath.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\sintab.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\soundfile.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\soundspooler.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\task.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\timerutils.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3DO\SDK\types.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

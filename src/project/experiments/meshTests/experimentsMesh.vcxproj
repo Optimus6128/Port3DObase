@@ -1,0 +1,133 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\3DO\hardware\CelRenderer.c" />
+    <ClCompile Include="..\..\3DO\SDK\audio.c" />
+    <ClCompile Include="..\..\3DO\SDK\celutils.c" />
+    <ClCompile Include="..\..\3DO\SDK\displayutils.c" />
+    <ClCompile Include="..\..\3DO\SDK\event.c" />
+    <ClCompile Include="..\..\3DO\SDK\form3DO.c" />
+    <ClCompile Include="..\..\3DO\SDK\graphics.c" />
+    <ClCompile Include="..\..\3DO\SDK\io.c" />
+    <ClCompile Include="..\..\3DO\SDK\mem.c" />
+    <ClCompile Include="..\..\3DO\SDK\operamath.c" />
+    <ClCompile Include="..\..\3DO\SDK\sintab.c" />
+    <ClCompile Include="..\..\3DO\SDK\soundfile.c" />
+    <ClCompile Include="..\..\3DO\SDK\task.c" />
+    <ClCompile Include="..\..\3DO\SDK\timerutils.c" />
+    <ClCompile Include="..\..\main.c" />
+    <ClCompile Include="..\..\tinyFPS.c" />
+    <ClCompile Include="main3DO.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\3DO\hardware\CelRenderer.h" />
+    <ClInclude Include="..\..\3DO\SDK\3dlib.h" />
+    <ClInclude Include="..\..\3DO\SDK\audio.h" />
+    <ClInclude Include="..\..\3DO\SDK\celutils.h" />
+    <ClInclude Include="..\..\3DO\SDK\displayutils.h" />
+    <ClInclude Include="..\..\3DO\SDK\event.h" />
+    <ClInclude Include="..\..\3DO\SDK\filestream.h" />
+    <ClInclude Include="..\..\3DO\SDK\filestreamfunctions.h" />
+    <ClInclude Include="..\..\3DO\SDK\form3DO.h" />
+    <ClInclude Include="..\..\3DO\SDK\graphics.h" />
+    <ClInclude Include="..\..\3DO\SDK\hardware.h" />
+    <ClInclude Include="..\..\3DO\SDK\io.h" />
+    <ClInclude Include="..\..\3DO\SDK\mem.h" />
+    <ClInclude Include="..\..\3DO\SDK\music.h" />
+    <ClInclude Include="..\..\3DO\SDK\operamath.h" />
+    <ClInclude Include="..\..\3DO\SDK\sintab.h" />
+    <ClInclude Include="..\..\3DO\SDK\soundfile.h" />
+    <ClInclude Include="..\..\3DO\SDK\soundspooler.h" />
+    <ClInclude Include="..\..\3DO\SDK\task.h" />
+    <ClInclude Include="..\..\3DO\SDK\timerutils.h" />
+    <ClInclude Include="..\..\3DO\SDK\types.h" />
+    <ClInclude Include="..\..\main.h" />
+    <ClInclude Include="..\..\tinyFPS.h" />
+    <ClInclude Include="main3DO.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{395DB8A5-F08D-4066-A632-83EE5E9C4472}</ProjectGuid>
+    <RootNamespace>PallewSoft1</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>experimentsSprites</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)\bin\</OutDir>
+    <IntDir>obj\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)\bin\</OutDir>
+    <IntDir>obj\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;$(SolutionDir)\src\project\lesson0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;sdl2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\usr\lib\x86</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\usr\include;$(SolutionDir)\src\3DO;$(SolutionDir)\src\3DO\SDK;$(SolutionDir)\src\project\lesson0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;sdl2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\usr\lib\x86</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -2,18 +2,130 @@
 #include "form3DO.h"
 
 #include "hardware.h"
+#include "mem.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-
-
-
-CCB* CreateCel(int32 width, int32 height, int32 bitsPerPixel, int32 options, void* dataBuf)
+int32 InitCel(CCB* cel, int32 w, int32 h, int32 bpp, int32 options)
 {
-	// Dummy (We use createCel with lowercase, our own. But would be good to provide the standard option for other people's projects)
+	int32		rowBytes;
+	int32		rowWOFFSET;
+	int32		wPRE;
+	int32		hPRE;
 
-	return NULL;
+	/*------------------------------------------------------------------------
+	 * Zero out the CCB fields that don't need special values.
+	 *----------------------------------------------------------------------*/
+
+	cel->ccb_NextPtr = NULL;
+	cel->ccb_SourcePtr = NULL;
+	cel->ccb_PLUTPtr = NULL;
+	cel->ccb_XPos = 0;
+	cel->ccb_YPos = 0;
+	cel->ccb_HDY = 0;
+	cel->ccb_VDX = 0;
+	cel->ccb_HDDX = 0;
+	cel->ccb_HDDY = 0;
+
+	/*------------------------------------------------------------------------
+	 * Set up the CCB fields that need non-zero values.
+	 *----------------------------------------------------------------------*/
+
+	cel->ccb_HDX = 1 << 20;
+	cel->ccb_VDY = 1 << 16;
+	cel->ccb_PIXC = PIXC_OPAQUE;
+	cel->ccb_Flags = CCB_LAST | CCB_NPABS | CCB_SPABS | CCB_PPABS |
+		CCB_LDSIZE | CCB_LDPRS | CCB_LDPPMP |
+		CCB_CCBPRE | CCB_YOXY | CCB_USEAV | CCB_NOBLK |
+		CCB_ACE | CCB_ACW | CCB_ACCW |
+		((options & INITCEL_CODED) ? CCB_LDPLUT : 0L);
+
+	/*------------------------------------------------------------------------
+	 * massage the width/height values.
+	 *	we have to set the bytes-per-row value to a a word-aligned value,
+	 *	and further have to allow for the cel engine's hardwired minimum
+	 *	of two words per row even when the pixels would fit in one word.
+	 *----------------------------------------------------------------------*/
+
+	rowBytes = (((w * bpp) + 31) >> 5) << 2;
+	if (rowBytes < 8) {
+		rowBytes = 8;
+	}
+	rowWOFFSET = (rowBytes >> 2) - PRE1_WOFFSET_PREFETCH;
+
+	wPRE = (w - PRE1_TLHPCNT_PREFETCH) << PRE1_TLHPCNT_SHIFT;
+	hPRE = (h - PRE0_VCNT_PREFETCH) << PRE0_VCNT_SHIFT;
+
+	cel->ccb_Width = w;
+	cel->ccb_Height = h;
+
+	/*------------------------------------------------------------------------
+	 * fill in the CCB preamble fields.
+	 *----------------------------------------------------------------------*/
+
+	if (!(options & INITCEL_CODED)) {
+		hPRE |= PRE0_LINEAR;
+	}
+
+	wPRE |= PRE1_TLLSB_PDC0;	/* Use blue LSB from source pixel or PLUT blue LSB. */
+
+	switch (bpp) {
+	case 1:
+		cel->ccb_PRE0 = hPRE | PRE0_BPP_1;
+		cel->ccb_PRE1 = wPRE | (rowWOFFSET << PRE1_WOFFSET8_SHIFT);
+		break;
+	case 2:
+		cel->ccb_PRE0 = hPRE | PRE0_BPP_2;
+		cel->ccb_PRE1 = wPRE | (rowWOFFSET << PRE1_WOFFSET8_SHIFT);
+		break;
+	case 4:
+		cel->ccb_PRE0 = hPRE | PRE0_BPP_4;
+		cel->ccb_PRE1 = wPRE | (rowWOFFSET << PRE1_WOFFSET8_SHIFT);
+		break;
+	case 6:
+		cel->ccb_PRE0 = hPRE | PRE0_BPP_6;
+		cel->ccb_PRE1 = wPRE | (rowWOFFSET << PRE1_WOFFSET8_SHIFT);
+		break;
+	case 8:
+		cel->ccb_PRE0 = hPRE | PRE0_BPP_8;
+		cel->ccb_PRE1 = wPRE | (rowWOFFSET << PRE1_WOFFSET10_SHIFT);
+		break;
+	default:
+		/* fall thru */
+	case 16:
+		cel->ccb_PRE0 = hPRE | PRE0_BPP_16;
+		cel->ccb_PRE1 = wPRE | (rowWOFFSET << PRE1_WOFFSET10_SHIFT);
+		break;
+	}
+
+	return (h * rowBytes);
+}
+
+CCB* CreateCel(int32 w, int32 h, int32 bpp, int32 options, void* databuf)
+{
+	int32 allocExtra;
+	int32 bufferBytes;
+	CCB* cel = NULL;
+
+	if (bpp < 8) {					/* only 8 and 16 bit cels can be uncoded, for */
+		options = CREATECEL_CODED;	/* anything less, force coded flag on. */
+	}
+
+	allocExtra = (options & CREATECEL_CODED) ? sizeof(uint16[32]) : 0L;
+
+	cel = AllocMem(sizeof(CCB), MEMTYPE_ANY);
+
+	bufferBytes = InitCel(cel, w, h, bpp, options);
+
+	cel->ccb_PLUTPtr = (options & CREATECEL_CODED) ? (void*)(cel + 1) : NULL;
+
+	if (databuf == NULL) {
+		databuf = AllocMem(bufferBytes, MEMTYPE_ANY);
+	}
+	cel->ccb_SourcePtr = (CelData*)databuf;
+
+	return cel;
 }
 
 static CCB* parseCel(void* buffer, int32 size)
@@ -206,4 +318,90 @@ void LinkCel(CCB* ccb, CCB* nextCCB)
 
 	ccb->ccb_NextPtr = nextCCB;
 	ccb->ccb_Flags &= ~CCB_LAST;
+}
+
+#define DUMMY_BUFFER	((void *)1)	/* a dummy non-NULL data buffer pointer */
+
+#define	PIXCL_BLEND_8	(PPMPC_1S_CFBD | PPMPC_SF_8 | PPMPC_2S_PDC)
+
+CCB* CreateBackdropCel(int32 width, int32 height, int32 color, int32 opacityPct)
+{
+	static Point quad[4];
+
+	CCB* pCel;
+	int32	scaleMul;
+	int32	r, g, b;
+	int32	scaledColor;
+	//SRect	srect;
+
+	/*------------------------------------------------------------------------
+	 * create a 16-bit uncoded cel at a 1x1 source data size, then map its
+	 * projection to the caller-specified width and height.
+	 *----------------------------------------------------------------------*/
+
+	if ((pCel = CreateCel(1, 1, 16, CREATECEL_UNCODED, DUMMY_BUFFER)) == NULL) {
+		return NULL;	/* error already reported by CreateCel(). */
+	}
+
+	//MapCelToSRect(pCel, SRectFromIVal(&srect, 0, 0, width, height));
+	quad[0].pt_X = 0; quad[0].pt_Y = 0;
+	quad[1].pt_X = width; quad[1].pt_Y = 0;
+	quad[2].pt_X = width; quad[2].pt_Y = height;
+	quad[3].pt_X = 0; quad[3].pt_Y = height;
+	MapCel(pCel, quad);
+
+	/*------------------------------------------------------------------------
+	 * Set up the PIXC word so that the primary source is the current frame
+	 * buffer pixel, scaled according to the opacity percent, and the
+	 * secondary source is a single pixel of the requested color, pre-scaled
+	 * to the inverse of the primary source scaling factor.
+	 *----------------------------------------------------------------------*/
+
+	if (opacityPct == 0) {						/* 0% opacity means this is a  */
+		scaledColor = 0;						/* 'virtual' cel that doesn't */
+		pCel->ccb_Flags |= CCB_SKIP;			/* display anything. */
+	}
+	else {
+		pCel->ccb_Flags |= CCB_BGND;			/* don't skip 0-valued pixels, */
+		pCel->ccb_PRE0 |= PRE0_BGND;			/* really, trust me, don't skip them. */
+
+		color &= 0x00007FFF;
+
+		scaleMul = (opacityPct + 12) / 13;		/* put 1-100% in range of 1-8 multiplier */
+
+		if (scaleMul == 8) {
+			scaledColor = color;
+			pCel->ccb_PIXC = PIXC_OPAQUE; 			/* opaque PIXC for 100% opacity */
+		}
+		else {
+			r = (color >> 10) & 0x1F;				/* isolate the color components. */
+			g = (color >> 5) & 0x1F;
+			b = (color >> 0) & 0x1F;
+
+			r = (r * scaleMul) / 8;					/* scale color components to the inverse */
+			g = (g * scaleMul) / 8;					/* of the scaling used for the current */
+			b = (b * scaleMul) / 8;					/* frame buffer pixel. */
+
+			scaledColor = (r << 10) | (g << 5) | (b << 0);	/* reassemble color components. */
+
+			scaleMul = 8 - scaleMul;				/* inverse multiplier for CFDB scaling */
+
+			pCel->ccb_PIXC = PIXCL_BLEND_8 | ((scaleMul - 1) << PPMPC_MF_SHIFT);
+		}
+	}
+
+	/*------------------------------------------------------------------------
+	 * Store the pre-scaled color pixel in the PLUT pointer in the CCB, and
+	 * point the source data pointer to it.  This just saves memory; uncoded
+	 * cels don't have a PLUT, so we use the PLUTPtr field as a little 4-byte
+	 * pixel data buffer.  It doesn't matter that the pixel doesn't even
+	 * slightly resemble a pointer, because the LDPLUT flag isn't set and
+	 * thus the cel engine will never read the PLUTPtr field.  (Sneaky, huh?)
+	 *----------------------------------------------------------------------*/
+
+	pCel->ccb_PLUTPtr = (void*)((scaledColor << 16));
+	pCel->ccb_SourcePtr = (CelData*)&pCel->ccb_PLUTPtr;
+
+	return pCel;
+
 }

@@ -5,7 +5,7 @@
 #include "engine_view.h"
 #include "engine_mesh.h"
 
-#define USE_MAP_CEL_ASM
+//#define USE_MAP_CEL_ASM
 
 #define MAX_VERTEX_ELEMENTS_NUM 4096
 

@@ -570,6 +570,9 @@ static void calculateBoundingBox(Object3D* obj)
 	Mesh *mesh = obj->mesh;
 	BoundingBox *bbox = &obj->bbox;
 
+	min.x = min.y = min.z = INT_MAX;
+	max.x = max.y = max.z = INT_MIN;
+
 	for (i=0; i<mesh->verticesNum; ++i) {
 		Vertex *v = &mesh->vertex[i];
 		if (i==0) {
