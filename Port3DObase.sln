@@ -5,9 +5,9 @@ VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EF095AA6-F290-4FC9-A578-5231DBD1841A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lesson0", "src\project\lesson0\PallewSoft.vcxproj", "{395DB8A5-F08D-4066-A632-83EE5E9C4472}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lesson0", "src\project\lesson0\lesson0.vcxproj", "{395DB8A5-F08D-4066-A632-83EE5E9C4472}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lesson1", "src\project\lesson1\PallewSoft.vcxproj", "{0C8937D9-59D6-42BE-B730-BFB5871509D4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lesson1", "src\project\lesson1\lesson1.vcxproj", "{0C8937D9-59D6-42BE-B730-BFB5871509D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
