@@ -17,6 +17,7 @@ void(*effectInitFunc[EFFECTS_NUM])() = { effectVolumeCubeInit, effectVolumeScape
 void(*effectRunFunc[EFFECTS_NUM])() = { effectVolumeCubeRun, effectVolumeScapeRun, effectVolumeScapeGradientRun };
 
 char *effectName[EFFECTS_NUM] = { "volume cube", "volume scape", "volume scape gradient" };
+
 int main3DO();
 
 #endif

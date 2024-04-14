@@ -7,8 +7,6 @@ int main3DO()
 {
 	const int effectIndex = runEffectSelector(effectName, EFFECTS_NUM);
 
-	if (effectIndex >= 0) {
-		coreInit(effectInitFunc[effectIndex], CORE_DEFAULT | CORE_SHOW_MEM);
-		coreRun(effectRunFunc[effectIndex]);
-	}
+	coreInit(effectInitFunc[effectIndex], CORE_DEFAULT | CORE_SHOW_MEM);
+	coreRun(effectRunFunc[effectIndex]);
 }

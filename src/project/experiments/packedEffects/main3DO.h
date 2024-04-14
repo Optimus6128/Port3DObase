@@ -17,6 +17,7 @@ void(*effectInitFunc[EFFECTS_NUM])() = { effectPackedSpritesInit, effectPackedRa
 void(*effectRunFunc[EFFECTS_NUM])() = { effectPackedSpritesRun, effectPackedRainRun, effectPackedRadialRun };
 
 char *effectName[EFFECTS_NUM] = { "packed sprites", "packed rain", "packed radial" };
+
 int main3DO();
 
 #endif
