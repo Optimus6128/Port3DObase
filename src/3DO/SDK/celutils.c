@@ -399,7 +399,11 @@ CCB* CreateBackdropCel(int32 width, int32 height, int32 color, int32 opacityPct)
 	 * thus the cel engine will never read the PLUTPtr field.  (Sneaky, huh?)
 	 *----------------------------------------------------------------------*/
 
-	pCel->ccb_PLUTPtr = (void*)((scaledColor << 16));
+	#ifdef BIG_ENDIAN
+		pCel->ccb_PLUTPtr = (void*)((scaledColor << 16));
+	#else
+		pCel->ccb_PLUTPtr = (void*)scaledColor;
+	#endif
 	pCel->ccb_SourcePtr = (CelData*)&pCel->ccb_PLUTPtr;
 
 	return pCel;
