@@ -11,129 +11,266 @@
       <UniqueIdentifier>{5525b215-6c34-4906-9810-09abb5679956}</UniqueIdentifier>
     </Filter>
     <Filter Include="project">
-      <UniqueIdentifier>{cda817ff-928e-4365-87b9-7e7ecb5cc27c}</UniqueIdentifier>
+      <UniqueIdentifier>{c77a001c-55ef-418b-a7ed-b5c040523530}</UniqueIdentifier>
     </Filter>
-    <Filter Include="project\lesson0">
-      <UniqueIdentifier>{8fd64098-9887-4ed7-8dd9-e1f49348d4d9}</UniqueIdentifier>
+    <Filter Include="project\common">
+      <UniqueIdentifier>{869be450-6c2f-432e-8f49-cf2b15785672}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\main.c" />
+    <ClCompile Include="..\..\..\tinyFPS.c" />
+    <ClCompile Include="..\..\..\3DO\hardware\CelRenderer.c">
+      <Filter>3DO\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\audio.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\celutils.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\displayutils.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\event.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\form3DO.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\graphics.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\io.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\mem.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\operamath.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\sintab.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\soundfile.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\task.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3DO\SDK\timerutils.c">
+      <Filter>3DO\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\anim_fli.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\cel_helpers.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\cel_packer.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\core.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\engine_main.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\engine_mesh.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\engine_soft.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\engine_texture.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\engine_view.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\engine_world.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\file_utils.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\input.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\mathutil.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\menu.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\procgen_image.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\procgen_mesh.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\procgen_texture.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\sprite_engine.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\system_graphics.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\tools.c">
+      <Filter>project\common</Filter>
+    </ClCompile>
+    <ClCompile Include="effect_packedRadial.c">
+      <Filter>project</Filter>
+    </ClCompile>
+    <ClCompile Include="effect_packedRain.c">
+      <Filter>project</Filter>
+    </ClCompile>
+    <ClCompile Include="effect_packedSprites.c">
+      <Filter>project</Filter>
+    </ClCompile>
     <ClCompile Include="main3DO.c">
-      <Filter>project\lesson0</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\main.c" />
-    <ClCompile Include="..\..\tinyFPS.c" />
-    <ClCompile Include="..\..\3DO\hardware\CelRenderer.c">
-      <Filter>3DO\hardware</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\audio.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\celutils.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\displayutils.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\event.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\form3DO.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\graphics.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\io.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\mem.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\operamath.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\sintab.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\soundfile.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\task.c">
-      <Filter>3DO\SDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\3DO\SDK\timerutils.c">
-      <Filter>3DO\SDK</Filter>
+      <Filter>project</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main3DO.h">
-      <Filter>project\lesson0</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\main.h" />
-    <ClInclude Include="..\..\tinyFPS.h" />
-    <ClInclude Include="..\..\3DO\hardware\CelRenderer.h">
+    <ClInclude Include="..\..\..\main.h" />
+    <ClInclude Include="..\..\..\tinyFPS.h" />
+    <ClInclude Include="..\..\..\3DO\hardware\CelRenderer.h">
       <Filter>3DO\hardware</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\3dlib.h">
+    <ClInclude Include="..\..\..\3DO\SDK\3dlib.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\audio.h">
+    <ClInclude Include="..\..\..\3DO\SDK\audio.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\celutils.h">
+    <ClInclude Include="..\..\..\3DO\SDK\celutils.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\displayutils.h">
+    <ClInclude Include="..\..\..\3DO\SDK\displayutils.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\event.h">
+    <ClInclude Include="..\..\..\3DO\SDK\event.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\filestream.h">
+    <ClInclude Include="..\..\..\3DO\SDK\filestream.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\filestreamfunctions.h">
+    <ClInclude Include="..\..\..\3DO\SDK\filestreamfunctions.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\form3DO.h">
+    <ClInclude Include="..\..\..\3DO\SDK\form3DO.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\graphics.h">
+    <ClInclude Include="..\..\..\3DO\SDK\graphics.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\hardware.h">
+    <ClInclude Include="..\..\..\3DO\SDK\hardware.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\io.h">
+    <ClInclude Include="..\..\..\3DO\SDK\io.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\mem.h">
+    <ClInclude Include="..\..\..\3DO\SDK\mem.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\music.h">
+    <ClInclude Include="..\..\..\3DO\SDK\music.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\operamath.h">
+    <ClInclude Include="..\..\..\3DO\SDK\operamath.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\sintab.h">
+    <ClInclude Include="..\..\..\3DO\SDK\sintab.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\soundfile.h">
+    <ClInclude Include="..\..\..\3DO\SDK\soundfile.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\soundspooler.h">
+    <ClInclude Include="..\..\..\3DO\SDK\soundspooler.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\task.h">
+    <ClInclude Include="..\..\..\3DO\SDK\task.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\timerutils.h">
+    <ClInclude Include="..\..\..\3DO\SDK\timerutils.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3DO\SDK\types.h">
+    <ClInclude Include="..\..\..\3DO\SDK\types.h">
       <Filter>3DO\SDK</Filter>
     </ClInclude>
+    <ClInclude Include="..\common\anim_fli.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\cel_helpers.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\cel_packer.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\core.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\engine_main.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\engine_mesh.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\engine_soft.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\engine_texture.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\engine_view.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\engine_world.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\file_utils.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\input.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\mathutil.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\menu.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\procgen_image.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\procgen_mesh.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\procgen_texture.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\sprite_engine.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\system_graphics.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\tools.h">
+      <Filter>project\common</Filter>
+    </ClInclude>
+    <ClInclude Include="main3DO.h">
+      <Filter>project</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\common\engine_cel_asm.s">
+      <Filter>project\common</Filter>
+    </None>
+    <None Include="..\common\fliUpdate.s">
+      <Filter>project\common</Filter>
+    </None>
   </ItemGroup>
 </Project>
