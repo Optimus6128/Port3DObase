@@ -9,4 +9,6 @@ int main3DO()
 
 	coreInit(effectInitFunc[effectIndex], CORE_DEFAULT | CORE_SHOW_MEM);
 	coreRun(effectRunFunc[effectIndex]);
+
+	return 0;
 }
