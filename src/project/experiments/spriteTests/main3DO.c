@@ -13,7 +13,7 @@ int main3DO()
 	int coreFlags = CORE_DEFAULT;
 
 	if (effectIndex == EFFECT_FLI_ANIM_TEST) {
-		coreFlags = CORE_SHOW_FPS | CORE_NO_VSYNC | CORE_NO_CLEAR_FRAME;
+		coreFlags = CORE_SHOW_FPS | /*CORE_NO_VSYNC | */CORE_NO_CLEAR_FRAME;
 	}
 
 	coreInit(effectInitFunc[effectIndex], coreFlags);
