@@ -15,4 +15,6 @@ int main3DO()
 
 	coreInit(effectInitFunc[effectIndex], CORE_SHOW_FPS | extraOpts);
 	coreRun(effectRunFunc[effectIndex]);
+
+	return 0;
 }
