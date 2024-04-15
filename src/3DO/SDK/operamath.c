@@ -19,6 +19,27 @@ void MulManyVec3Mat33_F16(vec3f16* dest, vec3f16* src, mat33f16 mat, int32 count
 	}
 }
 
+void MulManyVec4Mat44_F16(vec4f16* dest, vec4f16* src, mat44f16 mat, int32 count)
+{
+	int i;
+	frac16* m = (frac16*)mat;
+	frac16* s = (frac16*)src;
+	frac16* d = (frac16*)dest;
+
+	for (i = 0; i < count; ++i)
+	{
+		const int x = *s++;
+		const int y = *s++;
+		const int z = *s++;
+		const int w = *s++;
+
+		*d++ = (frac16)(((long long int)x * (long long int)m[0] + (long long int)y * (long long int)m[4] + (long long int)z * (long long int)m[8] + (long long int)w * (long long int)m[12]) >> OPERA_MATH_FP);
+		*d++ = (frac16)(((long long int)x * (long long int)m[1] + (long long int)y * (long long int)m[5] + (long long int)z * (long long int)m[9] + (long long int)w * (long long int)m[13]) >> OPERA_MATH_FP);
+		*d++ = (frac16)(((long long int)x * (long long int)m[2] + (long long int)y * (long long int)m[6] + (long long int)z * (long long int)m[10] + (long long int)w * (long long int)m[14]) >> OPERA_MATH_FP);
+		*d++ = (frac16)(((long long int)x * (long long int)m[3] + (long long int)y * (long long int)m[7] + (long long int)z * (long long int)m[11] + (long long int)w * (long long int)m[15]) >> OPERA_MATH_FP);
+	}
+}
+
 void MulVec3Mat33_F16(vec3f16 dest, vec3f16 vec, mat33f16 mat)
 {
 	MulManyVec3Mat33_F16((vec3f16*)dest, (vec3f16*)vec, mat, 1);

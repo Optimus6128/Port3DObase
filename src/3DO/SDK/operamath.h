@@ -29,6 +29,8 @@ void MulManyVec3Mat33_F16(vec3f16* dest, vec3f16* src, mat33f16 mat, int32 count
 void MulVec3Mat33_F16(vec3f16 dest, vec3f16 vec, mat33f16 mat);
 void MulMat33Mat33_F16(mat33f16 dest, mat33f16 src1, mat33f16 src2);
 
+void MulManyVec4Mat44_F16(vec4f16* dest, vec4f16* src, mat44f16 mat, int32 count);
+
 void OpenMathFolio();
 
 #endif
