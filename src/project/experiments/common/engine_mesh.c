@@ -69,20 +69,26 @@ void prepareCelList(Mesh *ms)
 		if (isBillBoards) celsNum = ms->verticesNum;
 
 		for (i=0; i<celsNum; i++) {
-			PolyData *poly = &ms->poly[i];
-			Texture *tex = &ms->tex[poly->textureId];
-			uint16 *pal = (uint16*)tex->pal;
+			Texture* tex = &ms->tex[0];
+			uint16* pal = NULL;
 
 			CCB *cel = &ms->cel[i];
 			int celType = CEL_TYPE_UNCODED;
 
+			unsigned char textureId = 0;
+			unsigned char palId = 0;
+
 			if (!isBillBoards) {
+				PolyData* poly = &ms->poly[i];
+				textureId = poly->textureId;
+				tex = &ms->tex[textureId];
+				palId = poly->palId << getCelPaletteColorsRealBpp(tex->bpp);
 
 				setCelTexShifts(cel, poly);
+			}
 
-				if (tex->pal) {
-					pal = (uint16*)&tex->pal[poly->palId << getCelPaletteColorsRealBpp(tex->bpp)];
-				}
+			if (tex->pal) {
+				pal = (uint16*)&tex->pal[palId];
 			}
 
 			if (tex->type & TEXTURE_TYPE_PALLETIZED) {

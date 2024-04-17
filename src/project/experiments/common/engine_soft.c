@@ -1491,4 +1491,7 @@ void initEngineSoft()
 	if (!gouraudColorShades) gouraudColorShades = crateColorShades(27,29,31, COLOR_GRADIENTS_SIZE, true);
 
 	initSoftBuffer();
+
+	// Bind something to avoid crash
+	bindGradient(lineColorShades[0]);
 }

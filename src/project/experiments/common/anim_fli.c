@@ -67,7 +67,13 @@ void FliColor(AnimFLI *anim)
 			const int r = (fliBuffer[anim->dataIndex++]>>1);
 			const int g = (fliBuffer[anim->dataIndex++]>>1);
 			const int b = (fliBuffer[anim->dataIndex++]>>1);
-			vga_pal[ci++] = (r<<(10+PAL_PAD_BITS)) | (g<<(5+PAL_PAD_BITS)) | (b << PAL_PAD_BITS);
+			uint32 c = (r<<(10+PAL_PAD_BITS)) | (g<<(5+PAL_PAD_BITS)) | (b << PAL_PAD_BITS);
+			#ifndef BIG_ENDIAN
+				uint32 c0 = (c >> 16);
+				uint32 c1 = c & 65535;
+				c = (SHORT_ENDIAN_FLIP(c0) << 16) | SHORT_ENDIAN_FLIP(c1);
+			#endif
+			vga_pal[ci++] = c;
 		}
 	}
 }

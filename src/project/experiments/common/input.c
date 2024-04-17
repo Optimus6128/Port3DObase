@@ -84,6 +84,8 @@ static void updateMouse()
 
 MousePosition getMousePosition()
 {
+	mousePosition.x = 0;
+	mousePosition.y = 0;
 	return mousePosition;
 }
 
