@@ -24,6 +24,7 @@ typedef struct CelPoint
 typedef struct PIXCinfo
 {
 	bool opaque;			// if some combination of values end up with unaltered bitmap (usually it's 0x1F00, which however is S1 * 8 / 8 + 0)
+	bool xor;				// does XOR instead of ADD or SUB
 	bool needsFrameBuffer;	// if at least one of the two sources are framebuffer
 	int source1;
 	int source2;
@@ -93,6 +94,7 @@ static void pixelProcessorRender(uint16* dst, uint16 color, PIXCinfo *info)
 			const int pdv = info->pdv;
 			const int dv2 = info->dv2;
 			const int avBits = info->avbits;
+			const bool doXor = info->xor;
 
 			if (info->source1 == PPMPC_1S_PDC) {
 				src1 = color;
@@ -112,9 +114,15 @@ static void pixelProcessorRender(uint16* dst, uint16 color, PIXCinfo *info)
 				break;
 
 				case PPMPC_2S_CCB:
-					r1 = (r1 + avBits) >> dv2;
-					g1 = (g1 + avBits) >> dv2;
-					b1 = (b1 + avBits) >> dv2;
+					if (!doXor) {
+						r1 = (r1 + avBits) >> dv2;
+						g1 = (g1 + avBits) >> dv2;
+						b1 = (b1 + avBits) >> dv2;
+					} else {
+						r1 = (r1 ^ avBits) >> dv2;
+						g1 = (g1 ^ avBits) >> dv2;
+						b1 = (b1 ^ avBits) >> dv2;
+					}
 				break;
 
 				case PPMPC_2S_CFBD:
@@ -131,10 +139,16 @@ static void pixelProcessorRender(uint16* dst, uint16 color, PIXCinfo *info)
 			if (addSrc2) {
 				r2 = (src2 >> 10) & 31;
 				g2 = (src2 >> 5) & 31;
-				b2 = src1 & 31;
-				r1 = (r1 + r2) >> dv2;
-				g1 = (g1 + g2) >> dv2;
-				b1 = (b1 + b2) >> dv2;
+				b2 = src2 & 31;
+				if (!doXor) {
+					r1 = (r1 + r2) >> dv2;
+					g1 = (g1 + g2) >> dv2;
+					b1 = (b1 + b2) >> dv2;
+				} else {
+					r1 = (r1 ^ r2) >> dv2;
+					g1 = (g1 ^ g2) >> dv2;
+					b1 = (b1 ^ b2) >> dv2;
+				}
 			}
 			if (r1 > 31) r1 = 31;
 			if (g1 > 31) g1 = 31;
@@ -585,6 +599,8 @@ static PIXCinfo* setupPIXCinfo(CCB* cel)
 			}
 		break;
 	}
+
+	info[0].xor = cel->ccb_Flags & CCB_PXOR;
 
 	return info;
 }
