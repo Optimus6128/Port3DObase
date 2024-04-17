@@ -235,6 +235,7 @@ static void unpackLine(uint8 *src, int bpp)
 	}
 }
 
+#define RRRGGGBB_TO_C16(c) ((((c) >> 5) << 12) | ((((c) >> 2) & 7) << 7) | (((c) & 3) << 3))
 
 static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, bool packed)
 {
@@ -259,13 +260,12 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 					const uint16 c3 = c >> 24;
 
 					// need another map to raw rrrgggbb
-					*dst = c0;
-					*(dst + 1) = c1;
-					*(dst + 2) = c2;
-					*(dst + 3) = c3;
+					*dst = RRRGGGBB_TO_C16(c0);
+					*(dst + 1) = RRRGGGBB_TO_C16(c1);
+					*(dst + 2) = RRRGGGBB_TO_C16(c2);
+					*(dst + 3) = RRRGGGBB_TO_C16(c3);
 					dst += 4;
 
-					*dst++ = 1;
 					break;
 				}
 
@@ -273,8 +273,8 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 				{
 					const uint16 c0 = c & 65535;
 					const uint16 c1 = c >> 16;
-					*dst++ = c0;
-					*dst++ = c1;
+					*dst++ = SHORT_ENDIAN_FLIP(c0);
+					*dst++ = SHORT_ENDIAN_FLIP(c1);
 					break;
 				}
 
