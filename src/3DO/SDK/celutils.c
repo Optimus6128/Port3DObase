@@ -250,22 +250,39 @@ static void correctPalEndianess(uint16 *pal, int numColors)
 	}
 }
 
+static void correctCelDataEndianess16bpp(uint16 *data, int pixelCount)
+{
+	if (!data || pixelCount <= 0) return;
+
+	while(pixelCount-- > 0) {
+		const uint16 c = *data;
+		*data++ = SHORT_ENDIAN_FLIP(c);
+	}
+}
+
 static void correctCelEndianess(CCB *cel)
 {
+	static int bppTable[8] = {0, 1,2,4,6,8,16, 0};
+
 	uint32* start = &cel->ccb_XPos;
 	uint32* end = &cel->ccb_Height;
 	uint32* ptr;
+	int bpp;
 
 	for (ptr = start; ptr <= end; ptr++) {
 		const uint32 value = LONG_ENDIAN_FLIP(*ptr);
 		*ptr = value;
 	}
 
-	if (!(cel->ccb_PRE0 & PRE0_LINEAR)) {
-		static int bppTable[8] = {0, 1,2,4,6,8,16, 0};
-		int bpp = bppTable[cel->ccb_PRE0 & PRE0_BPP_MASK];
+	bpp = bppTable[cel->ccb_PRE0 & PRE0_BPP_MASK];
+	if (bpp > 8) {
+		if (!(cel->ccb_Flags & CCB_PACKED)) {
+			correctCelDataEndianess16bpp((uint16*)cel->ccb_SourcePtr, cel->ccb_Width * cel->ccb_Height);
+		}
+		return;
+	}
 
-		if (bpp > 8) return;
+	if (!(cel->ccb_PRE0 & PRE0_LINEAR)) {
 		if (bpp == 8) {
 			bpp = 5;
 		}

@@ -273,8 +273,8 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 				{
 					const uint16 c0 = c & 65535;
 					const uint16 c1 = c >> 16;
-					*dst++ = SHORT_ENDIAN_FLIP(c0);
-					*dst++ = SHORT_ENDIAN_FLIP(c1);
+					*dst++ = c0;
+					*dst++ = c1;
 					break;
 				}
 
