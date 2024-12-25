@@ -575,8 +575,9 @@ static PIXCinfo* setupPIXCinfo(CCB* cel)
 	static PIXCinfo info[2];
 
 	const uint32 pixc = cel->ccb_PIXC;
-	const uint32 p0 = (pixc >> 16) & 65535;
-	const uint32 p1 = pixc & 65535;
+	// this is p1,p0 instead of p0,p1? Then it matches the bug on 3DO.
+	const uint32 p1 = (pixc >> 16) & 65535;
+	const uint32 p0 = pixc & 65535;
 
 	const uint32 pOver = cel->ccb_Flags & CCB_POVER_MASK;
 	switch(pOver) {

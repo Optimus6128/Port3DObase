@@ -50,6 +50,8 @@ int shadeTable[SHADE_TABLE_SIZE] = {
  0x03010301,0x07010701,0x0B010B01,0x0F010F01,0x13011301,0x17011701,0x1B011B01,0x1F011F01,
  0x03C103C1,0x07C107C1,0x0BC10BC1,0x0FC10FC1,0x13C113C1,0x17C117C1,0x1BC11B01,0x1FC11FC1
 };
+// Look at value 0x1BC11B01. This would break shading, copy paste mistake.
+// Fixed on 3DO project, works on this one. This means our CEL render doesn't emulate something, like it grabs the wrong PIXC value from the two in the word.
 
 static void slowMapCel(CCB *c, Point *q, unsigned char texShifts)
 {
