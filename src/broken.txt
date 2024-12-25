@@ -1,0 +1,119 @@
+Experiments Feedback
+--------------------
+
+Condition: Mostly broken
+
+* Feedback Cube
+	+ Hard is stretched or vertically squished, but inside seems good.
+	+ Soft is correct but wrong noisy duplicated pixels.
+	+ Blend kinda works but noisy points.
+	+ Backface kinda works. This part was a mess even in the original 3DO anyway. Haven't tested if I broke something there.
+
+* Dot cube
+	+ Both Desert Dream cube and 3d dot cube not displaying shit. (Probably feedback CEL is not properly implemented yet and neither Maria, even though the second might have been implemented in my Bizarro Port)
+
+* Mosaik effect
+	+ Absolutely wrong. Same issue with feedback, stretch on width, broken on height, probably I don't implement yet the zig-zag videoram read? Smells like I just was bored to implement this and left it in the middle and not just a bug.
+
+* Slime cube
+	+ Same as above. Kinda different patterns like half scanlines. If I finish implementing the feedback CEL, maybe lot's of these things will be fixed.
+
+
+
+Experiments Mesh
+----------------
+
+Condition: Mostly good, with some wrong colors in few CELs and a crash.
+
+* Pyramid triangle tests
+	+ Works well (not to myself though, colors look correct but maybe brighter than I expected, maybe it's my laptop screen showing things brighter or I miss a bit in the CEL decoding)
+
+* Mesh Grid
+	+ Works surprisngly well for such nice animated geometry, even the CEL shading on the quads. Colors are as I remember them.
+
+* Software 3D
+	+ Few of it is very broken. But it's mostly software rendering on CEL, both for 8bpp and 16bpp CEL bitmaps.
+	  However one of the modes might have been trying to do gouraud with CEL gradients combined. Or, recently I have been altering the software rendering and may have broke something.
+
+* 3D World
+	+ Most things work pretty well, it's pretty cool to display and move around these scenes with several objects and CEL shading just fine.
+	  However, the last part with the temple is missing the stars. Those were rendered in software in the 3DO videoram, which I also emulate (the Bizarro Engine PC port does display them).
+
+* Skybox
+	+ The duck 3d model is blue, wrong colors, probably wrong color depth detection in the CEL renderer. The skybox is correct.
+
+* Mesh Load
+	+ Again the model comes blue. I need to check what color depth and type I am using for the flat shaded objects and why it comes wrong. Should be easy to fix this one.
+
+* Particles
+	+ Just crashes in the cel renderer. Tries to read nullptr src bitmap data. Strange. Should be easy to debug and fix this one.
+
+* Heightmap
+	+ Works correctly
+
+* FLI play cinema
+	+ Colors of the FLI animations totally wrong. Not sure if it's still CEL renderer, because FLI loader might be doing things based on endianess, some of it I might have corrected previously.
+	  Also, sometimes I notice as I move close, polygons displaying wrong or extending further, could be overflow with big polygons on my renderer or even on the original 3DO.
+
+
+
+Experiments Packed
+------------------
+
+Condition: Very bad, basically anything packed doesn't display or crashes.
+
+* Packed Sprites
+	+ Unpacked works of course. Minor that the polar stars display a full broken circle. Probably my emulation of the Atan2 3DO functions uses wrong scale.
+	+ Packed is totally wrong. I thought it would be ok as I worked with CEL packing before and it obviously tries to do something. Maybe unfinished or a very bad bug.
+
+* Packed Rain
+	+ Nothing is displayed
+
+* Packed Radial
+	+ Crashes in the CEL unpacker
+
+
+Experiments Sprites
+-------------------
+
+Condition: Some things work, lot's to fix.
+
+* 1920 Gecko Sprites
+	+ Almost no display. Those were like 4x4 16bpp iirc. My theory, tiny ones are not yet handled correctly in my CEL renderer. I might not assume 8 bytes width with padding.
+
+* Background Layers
+	+ Seems to work pretty well. Not sure about few colors. But mostly seem ok and blend all layers and SPORT together. Moving around might mean I also emulate correctly the sub window CEL flags and bits.
+
+* Parallax tests
+	+ Seem correct, showing layers on and off, enabling 3DO layer and with blend. Still need to check the colors, more bright than they should?
+
+* Julia Fractal
+	+ Works, it's just a software rendering experiment on a CEL bitmap.
+
+* Water Ripples
+	+ Doesn't work. It's still a software rendering experiment on a CEL bitmap, but coded on 3DO for big endianess, so obviously it has to be converted here for little endianess, it's not an issue with the CEL renderer.
+
+* Sphere mapping
+	+ Software rendering effect on an 8bpp CEL bitmap. Works well I think (if colors are more bright, I need to check and compare again).
+
+* FLI animation test
+	+ Again displays wrong colors which could be either an issue of CEL renderer or simply my FLI decoder assuming big endianess.
+
+* AMV bits
+	+ Obviously not implemented yet on the CEL renderer. Sprite moves but no antialiased blends around the pixels, just solid. Didn't bother as I rarely use AMV bits in my own projects.
+
+
+
+Experiments Volume
+------------------
+
+* Effects Volumecube
+	+ Right now the torch will zoom in and crash, this is because it had mouse controls and haven't implemented them, so I forgot to clean the initial bits for the input and in debug mouse button is on for zoom in.
+	  But when I comment out things it works, even switch blend on/off and maria dots (so maria are implemented, just break in another part).
+	  Meanwhile I notice the points noise when blend is on, something to still fix.
+
+* Volume scape
+	+ Software rendered voxel landscape in a cel bitmap. Colors are wrong. Probably the one bit depth I am missing through a lot of parts for some reason.
+
+* Volume scape gradient
+	+ But this one is correct even if it's the same software rendered on a CEL bitmap. Did I change the bit depth or am I using the same? Could it be endianess with how I read some voxel data?
