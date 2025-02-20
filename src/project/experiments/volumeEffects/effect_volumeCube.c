@@ -398,6 +398,8 @@ static void renderMariaQuads(bool backToFront)
 	posYtrans = getMousePosition().y;
 	posZtrans = (8*DOTS_DEPTH + mouseTravelZ) << MESH_SCALE;
 
+	printf("%d %d\n", posXtrans, posYtrans);
+
 	tvPtr = tv;
 	if (backToFront)
 		tvPtr = &tv[DOTS_NUM-4];

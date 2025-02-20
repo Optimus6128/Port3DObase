@@ -5,8 +5,8 @@
 #include <string.h>
 
 
-ControlPadEventData globalControlPadEventData;
-MouseEventData globalMouseEventData;
+static ControlPadEventData globalControlPadEventData;
+static MouseEventData globalMouseEventData;
 
 void InitEventUtility(int32 numControlPads, int32 numMice, int32 focusListener)
 {
@@ -15,13 +15,14 @@ void InitEventUtility(int32 numControlPads, int32 numMice, int32 focusListener)
 
 Err GetControlPad(int32 padNumber, int32 wait, ControlPadEventData* data)
 {
-	update3DOinputSDL(&globalControlPadEventData);
+	update3DOinputSDL(&globalControlPadEventData, &globalMouseEventData);
 	memcpy(data, &globalControlPadEventData, sizeof(ControlPadEventData));
 	return 0;
 }
 
 Err GetMouse(int32 mouseNumber, int32 wait, MouseEventData* data)
 {
-	// TODO
+	update3DOinputSDL(&globalControlPadEventData, &globalMouseEventData);
+	memcpy(data, &globalMouseEventData, sizeof(MouseEventData));
 	return 0;
 }

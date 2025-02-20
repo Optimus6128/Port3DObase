@@ -78,7 +78,7 @@ static void basicInputSDL(SDL_Event *event)
 	}
 }
 
-void update3DOinputSDL(ControlPadEventData *controlPadEventData3DO)
+void update3DOinputSDL(ControlPadEventData *controlPadEventData3DO, MouseEventData* mouseEventData3DO)
 {
 	static SDL_Event event;
 
@@ -189,6 +189,47 @@ void update3DOinputSDL(ControlPadEventData *controlPadEventData3DO)
 				}
 				break;
 			}
+
+			case SDL_MOUSEMOTION:
+				mouseEventData3DO->med_HorizPosition = event.motion.x / SCREEN_SCALE;
+				mouseEventData3DO->med_VertPosition = event.motion.y / SCREEN_SCALE;
+				break;
+
+			case SDL_MOUSEBUTTONUP:
+			case SDL_MOUSEBUTTONDOWN:
+				switch (event.button.button)
+				{
+				case SDL_BUTTON_LEFT:
+					if (event.type == SDL_MOUSEBUTTONDOWN) {
+						mouseEventData3DO->med_ButtonBits |= MouseLeft;
+					}
+					else {
+						mouseEventData3DO->med_ButtonBits &= ~MouseLeft;
+					}
+					break;
+
+				case SDL_BUTTON_MIDDLE:
+					if (event.type == SDL_MOUSEBUTTONDOWN) {
+						mouseEventData3DO->med_ButtonBits |= MouseMiddle;
+					}
+					else {
+						mouseEventData3DO->med_ButtonBits &= ~MouseMiddle;
+					}
+					break;
+
+				case SDL_BUTTON_RIGHT:
+					if (event.type == SDL_MOUSEBUTTONDOWN) {
+						mouseEventData3DO->med_ButtonBits |= MouseRight;
+					}
+					else {
+						mouseEventData3DO->med_ButtonBits &= ~MouseRight;
+					}
+					break;
+
+				default:
+					break;
+				}
+				break;
 
 			default:
 				break;

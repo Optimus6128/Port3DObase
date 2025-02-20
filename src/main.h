@@ -19,7 +19,7 @@ typedef struct ScreenBuffer
 	unsigned int *vram;
 }ScreenBuffer;
 
-void update3DOinputSDL(ControlPadEventData *controlPadEventData3DO);
+void update3DOinputSDL(ControlPadEventData* controlPadEventData3DO, MouseEventData* mouseEventData3DO);
 void update3DOscreenSDL(uint16 *vram3DOptr, VDLmapColor *VDLmap);
 
 #endif
