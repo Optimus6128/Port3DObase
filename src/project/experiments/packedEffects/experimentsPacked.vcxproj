@@ -50,6 +50,7 @@
     <ClCompile Include="effect_packedRadial.c" />
     <ClCompile Include="effect_packedRain.c" />
     <ClCompile Include="effect_packedSprites.c" />
+    <ClCompile Include="effect_packedWave.c" />
     <ClCompile Include="main3DO.c" />
   </ItemGroup>
   <ItemGroup>
