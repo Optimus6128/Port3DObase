@@ -191,8 +191,8 @@ void update3DOinputSDL(ControlPadEventData *controlPadEventData3DO, MouseEventDa
 			}
 
 			case SDL_MOUSEMOTION:
-				mouseEventData3DO->med_HorizPosition = event.motion.x / SCREEN_SCALE;
-				mouseEventData3DO->med_VertPosition = event.motion.y / SCREEN_SCALE;
+				mouseEventData3DO->med_HorizPosition += event.motion.xrel;
+				mouseEventData3DO->med_VertPosition += event.motion.yrel;
 				break;
 
 			case SDL_MOUSEBUTTONUP:
