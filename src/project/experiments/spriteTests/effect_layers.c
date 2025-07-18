@@ -50,16 +50,30 @@ static void updateLayers()
 }
 
 // Just to save raw binaries of these images for later use in non 3DO projects
-/*static void saveRaw()
+/*static void convertImg(uint16 *src)
+{
+	for (int i=0; i<640*480; ++i) {
+		const int c = *src;
+		const int r = (c >> 10) & 31;
+		const int g = (c >> 5) & 31;
+		const int b = c & 31;
+		*src++ = (r << 11) | (g << 6) | b;
+	}
+}
+
+static void saveRaw()
 {
 	FILE* f;
 
+	convertImg(bg2data);
+	convertImg(bg3data);
+
 	f = fopen("img1.raw", "wb");
-	fwrite(bg2data, 1, 320 * 240 * 2, f);
+	fwrite(bg2data, 1, 640 * 480 * 2, f);
 	fclose(f);
 
 	f = fopen("img2.raw", "wb");
-	fwrite(bg3data, 1, 320 * 240 * 2, f);
+	fwrite(bg3data, 1, 640 * 480 * 2, f);
 	fclose(f);
 }*/
 
