@@ -49,6 +49,20 @@ static void updateLayers()
 	setBlend(bg3Cel, blend3);
 }
 
+// Just to save raw binaries of these images for later use in non 3DO projects
+/*static void saveRaw()
+{
+	FILE* f;
+
+	f = fopen("img1.raw", "wb");
+	fwrite(bg2data, 1, 320 * 240 * 2, f);
+	fclose(f);
+
+	f = fopen("img2.raw", "wb");
+	fwrite(bg3data, 1, 320 * 240 * 2, f);
+	fclose(f);
+}*/
+
 void effectLayersInit()
 {
 	loadAndSetBackgroundImage("data/background.img", getBackBuffer());
@@ -60,6 +74,8 @@ void effectLayersInit()
 	bg1data = getCelBitmap(bg1Cel);
 	bg2data = getCelBitmap(bg2Cel);
 	bg3data = getCelBitmap(bg3Cel);
+
+	//saveRaw();
 
 	linkCel(bg1Cel, bg2Cel);
 	linkCel(bg2Cel, bg3Cel);
