@@ -38,13 +38,20 @@ static void updateWater(unsigned char *buffer1, unsigned char *buffer2, unsigned
 	unsigned int *vram = (unsigned int*)vramOffset;
 
 	do {
-		const unsigned int cb_0 = *((unsigned char*)src1-1);
-		const unsigned int cb_1234 = *src1;
-		const unsigned int cb_5 = *((unsigned char*)src1+4);
-		const unsigned int c0 = (cb_0 << 24) | (cb_1234 >> 8);
-		const unsigned int c1 = (cb_1234 << 8) | cb_5;
-		const unsigned int c2 = *(src1-WATER_WIDTH_WORDS);
-		const unsigned int c3 = *(src1+WATER_WIDTH_WORDS);
+		#ifdef BIG_ENDIAN
+			const unsigned int cb_0 = *((unsigned char*)src1-1);
+			const unsigned int cb_1234 = *src1;
+			const unsigned int cb_5 = *((unsigned char*)src1+4);
+			const unsigned int c0 = (cb_0 << 24) | (cb_1234 >> 8);
+			const unsigned int c1 = (cb_1234 << 8) | cb_5;
+			const unsigned int c2 = *(src1-WATER_WIDTH_WORDS);
+			const unsigned int c3 = *(src1+WATER_WIDTH_WORDS);
+		#else
+			const unsigned int c0 = *((unsigned int*)((unsigned char*)src1-1));
+			const unsigned int c1 = *((unsigned int*)((unsigned char*)src1+1));
+			const unsigned int c2 = *(src1-WATER_WIDTH_WORDS);
+			const unsigned int c3 = *(src1+WATER_WIDTH_WORDS);
+		#endif
 
 		// Water effect on 4 bytes packed in 32bits
 		const unsigned int c = (((c0 + c1 + c2 + c3) >> 1) & 0x7f7f7f7f) - *src2;
