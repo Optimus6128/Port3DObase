@@ -21,6 +21,8 @@ void DoIO(Item ior, const IOInfo *ioiP)
 
 		case SPORTCMD_COPY:
 		{
+			Item vsyncItem = GetVBLIOReq();
+			WaitVBL(vsyncItem, 1);
 			memcpy(ioiP->ioi_Recv.iob_Buffer, ioiP->ioi_Send.iob_Buffer, ioiP->ioi_Send.iob_Len);
 		}
 		break;
