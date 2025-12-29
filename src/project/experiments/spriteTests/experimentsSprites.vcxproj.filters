@@ -149,6 +149,12 @@
     <ClCompile Include="main3DO.c">
       <Filter>project</Filter>
     </ClCompile>
+    <ClCompile Include="effect_raytrace.c">
+      <Filter>project</Filter>
+    </ClCompile>
+    <ClCompile Include="raytrace.c">
+      <Filter>project</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\main.h" />
@@ -277,6 +283,12 @@
       <Filter>project\common</Filter>
     </ClInclude>
     <ClInclude Include="main3DO.h">
+      <Filter>project</Filter>
+    </ClInclude>
+    <ClInclude Include="raytrace.h">
+      <Filter>project</Filter>
+    </ClInclude>
+    <ClInclude Include="vectorFp.h">
       <Filter>project</Filter>
     </ClInclude>
   </ItemGroup>

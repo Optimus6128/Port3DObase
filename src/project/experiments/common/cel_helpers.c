@@ -49,8 +49,16 @@ int getCelBpp(CCB *cel)
 
 int getCelType(CCB *cel)
 {
-	// will implement in the future
-	return 0;
+	int type = 0;
+
+	if (cel->ccb_PRE0 & PRE0_LINEAR) {
+		type |= CEL_TYPE_UNCODED;
+	}
+	if (cel->ccb_Flags & CCB_PACKED) {
+		type |= CEL_TYPE_PACKED;
+	}
+
+	return type;
 }
 
 uint16* getCelPalette(CCB *cel)
@@ -210,6 +218,16 @@ void initCel(int width, int height, int bpp, int type, CCB *cel)
 	setCelType(type, cel);
 	initCelHeight(height, cel);
 	initCelWidth(width, cel);
+
+	if (type & CEL_TYPE_ALLOC_PAL) {
+		int palSize = getCelPaletteColorsRealBpp(bpp) * sizeof(uint16);
+		cel->ccb_PLUTPtr = (uint16*)AllocMem(palSize, MEMTYPE_ANY);
+	}
+
+	if (type & CEL_TYPE_ALLOC_BMP) {
+		int bmpSize = getCelDataSizeInBytes(cel);
+		cel->ccb_SourcePtr = AllocMem(bmpSize, MEMTYPE_ANY);
+	}
 }
 
 CCB *createCel(int width, int height, int bpp, int type)

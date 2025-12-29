@@ -52,10 +52,12 @@
     <ClCompile Include="effect_julia.c" />
     <ClCompile Include="effect_layers.c" />
     <ClCompile Include="effect_parallax.c" />
+    <ClCompile Include="effect_raytrace.c" />
     <ClCompile Include="effect_sphere.c" />
     <ClCompile Include="effect_spritesGecko.c" />
     <ClCompile Include="effect_water.c" />
     <ClCompile Include="main3DO.c" />
+    <ClCompile Include="raytrace.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\3DO\hardware\CelRenderer.h" />
@@ -102,6 +104,8 @@
     <ClInclude Include="..\common\system_graphics.h" />
     <ClInclude Include="..\common\tools.h" />
     <ClInclude Include="main3DO.h" />
+    <ClInclude Include="raytrace.h" />
+    <ClInclude Include="vectorFp.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\common\engine_cel_asm.s" />
