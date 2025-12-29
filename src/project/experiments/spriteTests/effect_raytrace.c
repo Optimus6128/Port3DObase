@@ -28,8 +28,6 @@ static int buffToRender = 1;
 
 void effectRaytraceInit()
 {
-	int i;
-
 	loadAndSetBackgroundImage("data/background.img", getBackBuffer());
 
 	cubeTex = initTextures(RT_WIDTH, RT_HEIGHT, 16, TEXTURE_TYPE_DEFAULT, NULL, NULL, 0, 2);
@@ -45,9 +43,10 @@ void effectRaytraceInit()
 
 void effectRaytraceRun()
 {
-	const int t = getTicks();
+	static int tr = 0;
+	int t = getTicks();
 
-	raytraceRun((uint16*)cubeTex[buffToRender].bitmap, rtUpdateIndex, t);
+	raytraceRun((uint16*)cubeTex[buffToRender].bitmap, rtUpdateIndex, tr>>1);
 
 	setObject3Dpos(cubeObj, 0, 0, 640);
 	setObject3Drot(cubeObj, t>>5, t>>6, t>>7);
@@ -57,5 +56,6 @@ void effectRaytraceRun()
 	if (rtUpdateIndex == 0) {
 		updateAllPolyTextureId(cubeMesh, buffToRender);
 		buffToRender ^= 1;
+		tr = getTicks();
 	}
 }
