@@ -32,6 +32,8 @@ typedef struct PIXCinfo
 	int pmv;				// Primary multiplier value: 1-8
 	int pdv;				// Primary divider value: 2,4,8,16
 	int dv2;				// 2D (or 2DV), either 1 or 2, SDV might be a different story altogether
+
+	bool discardZeroRGB;	// Technically not PIXCinfo value, just storing whether we should discard RGB:0,0,0 or write the black
 } PIXCinfo;
 
 
@@ -81,79 +83,82 @@ static int getCelWoffset(CCB* cel)
 
 static void pixelProcessorRender(uint16* dst, uint16 color, PIXCinfo *info)
 {
-	if (color != 0) {
-		if (info->opaque) {
+	if (info->opaque) {
+		if (!(color == 0 && info->discardZeroRGB)) {
 			*dst = color;
+		}
+	} else {
+		int r1, g1, b1;
+		int r2, g2, b2;
+		uint16 src1, src2;
+		bool addSrc2 = false;
+
+		const int pmv = info->pmv;
+		const int pdv = info->pdv;
+		const int dv2 = info->dv2;
+		const int avBits = info->avbits;
+		const bool doXor = info->xor;
+
+		if (info->source1 == PPMPC_1S_PDC) {
+			src1 = color;
 		} else {
-			int r1, g1, b1;
-			int r2, g2, b2;
-			uint16 src1, src2;
-			bool addSrc2 = false;
+			src1 = *dst;
+		}
 
-			const int pmv = info->pmv;
-			const int pdv = info->pdv;
-			const int dv2 = info->dv2;
-			const int avBits = info->avbits;
-			const bool doXor = info->xor;
+		r1 = (((src1 >> 10) & 31) * pmv) / pdv;
+		g1 = (((src1 >> 5) & 31) * pmv) / pdv;
+		b1 = ((src1 & 31) * pmv) / pdv;
 
-			if (info->source1 == PPMPC_1S_PDC) {
-				src1 = color;
-			} else {
-				src1 = *dst;
-			}
+		switch (info->source2) {
+			case PPMPC_2S_0:
+				r1 >>= dv2;
+				g1 >>= dv2;
+				b1 >>= dv2;
+			break;
 
-			r1 = (((src1 >> 10) & 31) * pmv) / pdv;
-			g1 = (((src1 >> 5) & 31) * pmv) / pdv;
-			b1 = ((src1 & 31) * pmv) / pdv;
-
-			switch (info->source2) {
-				case PPMPC_2S_0:
-					r1 >>= dv2;
-					g1 >>= dv2;
-					b1 >>= dv2;
-				break;
-
-				case PPMPC_2S_CCB:
-					if (!doXor) {
-						r1 = (r1 + avBits) >> dv2;
-						g1 = (g1 + avBits) >> dv2;
-						b1 = (b1 + avBits) >> dv2;
-					} else {
-						r1 = (r1 ^ avBits) >> dv2;
-						g1 = (g1 ^ avBits) >> dv2;
-						b1 = (b1 ^ avBits) >> dv2;
-					}
-				break;
-
-				case PPMPC_2S_CFBD:
-					src2 = *dst;
-					addSrc2 = true;
-				break;
-
-				case PPMPC_2S_PDC:
-					src2 = color;
-					addSrc2 = true;
-				break;
-			}
-
-			if (addSrc2) {
-				r2 = (src2 >> 10) & 31;
-				g2 = (src2 >> 5) & 31;
-				b2 = src2 & 31;
+			case PPMPC_2S_CCB:
 				if (!doXor) {
-					r1 = (r1 + r2) >> dv2;
-					g1 = (g1 + g2) >> dv2;
-					b1 = (b1 + b2) >> dv2;
+					r1 = (r1 + avBits) >> dv2;
+					g1 = (g1 + avBits) >> dv2;
+					b1 = (b1 + avBits) >> dv2;
 				} else {
-					r1 = (r1 ^ r2) >> dv2;
-					g1 = (g1 ^ g2) >> dv2;
-					b1 = (b1 ^ b2) >> dv2;
+					r1 = (r1 ^ avBits) >> dv2;
+					g1 = (g1 ^ avBits) >> dv2;
+					b1 = (b1 ^ avBits) >> dv2;
 				}
+			break;
+
+			case PPMPC_2S_CFBD:
+				src2 = *dst;
+				addSrc2 = true;
+			break;
+
+			case PPMPC_2S_PDC:
+				src2 = color;
+				addSrc2 = true;
+			break;
+		}
+
+		if (addSrc2) {
+			r2 = (src2 >> 10) & 31;
+			g2 = (src2 >> 5) & 31;
+			b2 = src2 & 31;
+			if (!doXor) {
+				r1 = (r1 + r2) >> dv2;
+				g1 = (g1 + g2) >> dv2;
+				b1 = (b1 + b2) >> dv2;
+			} else {
+				r1 = (r1 ^ r2) >> dv2;
+				g1 = (g1 ^ g2) >> dv2;
+				b1 = (b1 ^ b2) >> dv2;
 			}
-			if (r1 > 31) r1 = 31;
-			if (g1 > 31) g1 = 31;
-			if (b1 > 31) b1 = 31;
-			*dst = (r1 << 10) | (g1 << 5) | b1;
+		}
+		if (r1 > 31) r1 = 31;
+		if (g1 > 31) g1 = 31;
+		if (b1 > 31) b1 = 31;
+		color = (r1 << 10) | (g1 << 5) | b1;
+		if (!(color == 0 && info->discardZeroRGB)) {
+			*dst = color;
 		}
 	}
 }
@@ -347,7 +352,7 @@ static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, u
 	int x, y;
 	int xMin, yMin, xMax, yMax;
 
-	if (color) {
+	//if (!(color == 0 && info->discardZeroRGB)) {
 		xMin = p0->x;
 		yMin = p0->y;
 		xMax = xMin;
@@ -382,7 +387,7 @@ static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, u
 				}
 			}
 		}
-	}
+	//}
 }
 
 static void renderCelGridTexels(uint16* dst, int width, int height, int order, bool mariaFill, PIXCinfo *info)
@@ -394,7 +399,7 @@ static void renderCelGridTexels(uint16* dst, int width, int height, int order, b
 	for (y=0; y<height; ++y) {
 		for (x = 0; x < width; ++x) {
 			const uint16 color = celGridSrc->c & 65535;
-			if (color) {
+			if (!(color == 0 && info->discardZeroRGB)) {
 				CelPoint* p0 = &celGridSrc[0];
 				CelPoint* p1 = &celGridSrc[1];
 				CelPoint* p2 = &celGridSrc[gridWoffset];
@@ -602,6 +607,7 @@ static PIXCinfo* setupPIXCinfo(CCB* cel)
 	}
 
 	info[0].xor = cel->ccb_Flags & CCB_PXOR;
+	info[0].discardZeroRGB = (cel->ccb_Flags & CCB_BGND) == 0;
 
 	return info;
 }

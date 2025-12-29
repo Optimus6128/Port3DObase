@@ -28,6 +28,8 @@ static int buffToRender = 1;
 
 void effectRaytraceInit()
 {
+	int i;
+
 	loadAndSetBackgroundImage("data/background.img", getBackBuffer());
 
 	cubeTex = initTextures(RT_WIDTH, RT_HEIGHT, 16, TEXTURE_TYPE_DEFAULT, NULL, NULL, 0, 2);

@@ -651,7 +651,7 @@ static void renderObjectsSubdiv4x(uint16 *buff, int updatePieceIndex)
 	Hit *hitBuff = &hitBuffer[(y0 >> 1) * HIT_BUFF_WIDTH];
 
 	i = 0;
-	for (y = y0; y < y1; y++) {
+	for (y = y0; y < y1-1; y+=2) {
 		for (x = 0; x < HIT_BUFF_WIDTH; x++) {
 			hitBuff[i++].obj = NULL;
 		}
