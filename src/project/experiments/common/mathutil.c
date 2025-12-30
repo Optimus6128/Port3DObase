@@ -31,6 +31,7 @@ static int isqrtCalc(int x) {
 } 
 
 int isqrt(int x) {
+	if (x < 0) return 1;
 	if (x < SQRT_LUT_SIZE) {
 		return sqrtLUT[x];
 	} else {
