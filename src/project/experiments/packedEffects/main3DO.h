@@ -21,6 +21,8 @@ void(*effectRunFunc[EFFECTS_NUM])() = { effectPackedSpritesRun, effectPackedRain
 
 char *effectName[EFFECTS_NUM] = { "packed sprites", "packed rain", "packed radial", "packed wave" };
 
-int main3DO();
+#ifndef PROJECT_3DO
+	int main3DO();
+#endif
 
 #endif

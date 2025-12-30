@@ -36,6 +36,8 @@ void(*effectRunFunc[EFFECTS_NUM])() = { effectMeshPyramidsRun, effectMeshGridRun
 
 char *effectName[EFFECTS_NUM] = { "mesh pyramids test", "mesh grid", "software 3d", "3d world", "skybox", "mesh load", "particles", "heightmap", "FLI plane" };
 
-int main3DO();
+#ifndef PROJECT_3DO
+	int main3DO();
+#endif
 
 #endif

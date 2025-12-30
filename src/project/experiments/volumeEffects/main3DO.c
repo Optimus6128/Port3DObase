@@ -3,7 +3,11 @@
 
 #include "main3DO.h"
 
-int main3DO()
+#ifdef PROJECT_3DO
+	int main()
+#else
+	int main3DO()
+#endif
 {
 	const int effectIndex = runEffectSelector(effectName, EFFECTS_NUM);
 

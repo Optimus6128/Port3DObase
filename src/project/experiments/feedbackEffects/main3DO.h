@@ -21,6 +21,8 @@ void(*effectRunFunc[EFFECTS_NUM])() = { effectFeedbackCubeRun, effectDotcubeRun,
 
 char *effectName[EFFECTS_NUM] = { "feedback cube", "dot cube", "mosaik effect", "slime cube" };
 
-int main3DO();
+#ifndef PROJECT_3DO
+	int main3DO();
+#endif
 
 #endif

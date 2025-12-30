@@ -3,7 +3,11 @@
 
 #include "main3DO.h"
 
-int main3DO()
+#ifdef PROJECT_3DO
+	int main()
+#else
+	int main3DO()
+#endif
 {
 	int extraOpts = (CORE_NO_VSYNC | CORE_VRAM_MAXBUFFERS);//CORE_SHOW_MEM;
 

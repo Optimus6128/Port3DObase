@@ -13,7 +13,11 @@ void(*effectInitFunc[EFFECTS_NUM])() = { effectSpritesGeckoInit, effectLayersIni
 void(*effectRunFunc[EFFECTS_NUM])() = { effectSpritesGeckoRun, effectLayersRun, effectParallaxRun, effectJuliaRun, effectWaterRun, effectSphereRun, effectFliAnimTestRun, effectAmvRun, effectRaytraceRun };
 char* effectName[EFFECTS_NUM] = { "1920 gecko sprites", "background layers", "parallax tests", "julia fractal", "water ripples", "sphere mapping", "fli animation test", "AMV bits", "Raytracing" };
 
-int main3DO()
+#ifdef PROJECT_3DO
+	int main()
+#else
+	int main3DO()
+#endif
 {
 	const int effectIndex = runEffectSelector(effectName, EFFECTS_NUM);
 	int coreFlags = CORE_DEFAULT;
@@ -23,7 +27,7 @@ int main3DO()
 	}
 
 	if (effectIndex == EFFECT_RAYTRACE) {
-		coreFlags = CORE_SHOW_FPS | CORE_SHOW_MEM | CORE_INIT_3D_ENGINE;
+		coreFlags = CORE_SHOW_FPS | CORE_INIT_3D_ENGINE | CORE_OFFSCREEN_BUFFERS(1) | CORE_VRAM_DOUBLEBUFFER;
 	}
 
 	coreInit(effectInitFunc[effectIndex], coreFlags);
