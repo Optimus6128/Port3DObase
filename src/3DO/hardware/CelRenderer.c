@@ -39,7 +39,7 @@ typedef struct CelRenderInfo
 
 
 
-static uint16 bitmapLine[MAX_TEXTURE_SIZE+1];
+static uint16 bitmapLine[2*MAX_TEXTURE_SIZE+1];
 static uint32 unpackedSrc[MAX_TEXTURE_SIZE+1];
 
 static CelPoint celGrid[(MAX_TEXTURE_SIZE+1) * (MAX_TEXTURE_SIZE+1)];
@@ -249,6 +249,7 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 	int wordLength = (width * bpp + 31) >> 5;
 
 	if (lrform) {
+		wordLength *= 2;
 		while (wordLength-- > 0) {
 			const uint32 c = *src++;
 			const uint16 c0 = c & 65535;
@@ -491,8 +492,6 @@ static void renderCelPolygon(CCB* cel, uint16* dst, CelRenderInfo *info)
 	posY = cel->ccb_YPos;
 	for (y = 0; y < height+1; ++y) {
 		uint16* bitmapLinePtr = bitmapLine;
-		int pposX = posX << 4;
-		int pposY = posY << 4;
 
 		if (y < height) decodeLine(width, bpp, src, pal, raw, packed, lrform);
 
@@ -503,6 +502,8 @@ static void renderCelPolygon(CCB* cel, uint16* dst, CelRenderInfo *info)
 		}
 
 		for (i = 0; i < n; ++i) {
+			int pposX = posX << 4;
+			int pposY = posY << 4;
 			for (x = 0; x < width; ++x) {
 				celGridDst->x = pposX >> 20;
 				celGridDst->y = pposY >> 20;
