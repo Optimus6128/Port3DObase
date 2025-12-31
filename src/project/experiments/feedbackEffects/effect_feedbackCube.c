@@ -71,8 +71,13 @@ static void copyBufferToTexture()
 		for (x=0; x<FB_WIDTH; x+=2) {
 			uint32 s0 = *(src + x);
 			uint32 s1 = *(src + x + 1);
-			uint32 c0 = (s0 & ~65535) | (s1 >> 16);
-			uint32 c1 = (s0 << 16) | (s1 & 65535);
+			#ifdef BIG_ENDIAN
+				uint32 c0 = (s0 & ~65535) | (s1 >> 16);
+				uint32 c1 = (s0 << 16) | (s1 & 65535);
+			#else
+				uint32 c1 = (s1 & ~65535) | (s0 >> 16);
+				uint32 c0 = (s1 << 16) | (s0 & 65535);
+			#endif
 			*dst0++ = c0;
 			*dst1++ = c1;
 		}

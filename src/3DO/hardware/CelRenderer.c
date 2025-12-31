@@ -21,7 +21,7 @@ typedef struct CelPoint
 #define SPLAT_PRECISE_TEXEL
 
 
-typedef struct PIXCinfo
+typedef struct CelRenderInfo
 {
 	bool opaque;			// if some combination of values end up with unaltered bitmap (usually it's 0x1F00, which however is S1 * 8 / 8 + 0)
 	bool xor;				// does XOR instead of ADD or SUB
@@ -33,8 +33,9 @@ typedef struct PIXCinfo
 	int pdv;				// Primary divider value: 2,4,8,16
 	int dv2;				// 2D (or 2DV), either 1 or 2, SDV might be a different story altogether
 
-	bool discardZeroRGB;	// Technically not PIXCinfo value, just storing whether we should discard RGB:0,0,0 or write the black
-} PIXCinfo;
+	bool mariaRender;
+	bool transparentRGB0;
+} CelRenderInfo;
 
 
 
@@ -81,10 +82,10 @@ static int getCelWoffset(CCB* cel)
 }
 
 
-static void pixelProcessorRender(uint16* dst, uint16 color, PIXCinfo *info)
+static void pixelProcessorRender(uint16* dst, uint16 color, CelRenderInfo *info)
 {
 	if (info->opaque) {
-		if (!(color == 0 && info->discardZeroRGB)) {
+		if (!(color == 0 && info->transparentRGB0)) {
 			*dst = color;
 		}
 	} else {
@@ -157,7 +158,7 @@ static void pixelProcessorRender(uint16* dst, uint16 color, PIXCinfo *info)
 		if (g1 > 31) g1 = 31;
 		if (b1 > 31) b1 = 31;
 		color = (r1 << 10) | (g1 << 5) | b1;
-		if (!(color == 0 && info->discardZeroRGB)) {
+		if (!(color == 0 && info->transparentRGB0)) {
 			*dst = color;
 		}
 	}
@@ -242,21 +243,31 @@ static void unpackLine(uint8 *src, int bpp)
 
 #define RRRGGGBB_TO_C16(c) ((((c) >> 5) << 12) | ((((c) >> 2) & 7) << 7) | (((c) & 3) << 3))
 
-static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, bool packed)
+static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, bool packed, bool lrform)
 {
 	uint16* dst = bitmapLine;
 	int wordLength = (width * bpp + 31) >> 5;
 
-	if (packed) {
-		unpackLine((uint8*)src + 2, bpp);
-		src = unpackedSrc;
-	}
-
-	if (raw) {
+	if (lrform) {
 		while (wordLength-- > 0) {
 			const uint32 c = *src++;
+			const uint16 c0 = c & 65535;
+			const uint16 c1 = c >> 16;
+			*dst = c0;
+			*(dst+width) = c1;
+			++dst;
+		}
+	} else {
+		if (packed) {
+			unpackLine((uint8*)src + 2, bpp);
+			src = unpackedSrc;
+		}
 
-			switch (bpp) {
+		if (raw) {
+			while (wordLength-- > 0) {
+				const uint32 c = *src++;
+
+				switch (bpp) {
 				case 8:
 				{
 					const uint16 c0 = c & 255;
@@ -285,15 +296,16 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 
 				default:
 					break;
+				}
 			}
 		}
-	} else {
-		if (!pal) return;
+		else {
+			if (!pal) return;
 
-		while (wordLength-- > 0) {
-			const uint32 c = *src++;
+			while (wordLength-- > 0) {
+				const uint32 c = *src++;
 
-			switch (bpp) {
+				switch (bpp) {
 				case 4:
 				{
 					const uint16 c1 = pal[c & 15];
@@ -334,6 +346,7 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 
 				default:
 					break;
+				}
 			}
 		}
 	}
@@ -347,7 +360,7 @@ static bool pointInsideQuad(int x, int y, CelPoint* p0, CelPoint* p1, CelPoint* 
 			((y - p3->y) * (p0->x - p3->x) - (x - p3->x) * (p0->y - p3->y) >= 0);
 }
 
-static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* dst, PIXCinfo *info)
+static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* dst, CelRenderInfo *info)
 {
 	int x, y;
 	int xMin, yMin, xMax, yMax;
@@ -390,7 +403,7 @@ static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, u
 	//}
 }
 
-static void renderCelGridTexels(uint16* dst, int width, int height, int order, bool mariaFill, PIXCinfo *info)
+static void renderCelGridTexels(uint16* dst, int width, int height, int order, CelRenderInfo *info)
 {
 	int x, y;
 	CelPoint* celGridSrc = celGrid;
@@ -399,13 +412,13 @@ static void renderCelGridTexels(uint16* dst, int width, int height, int order, b
 	for (y=0; y<height; ++y) {
 		for (x = 0; x < width; ++x) {
 			const uint16 color = celGridSrc->c & 65535;
-			if (!(color == 0 && info->discardZeroRGB)) {
+			if (!(color == 0 && info->transparentRGB0)) {
 				CelPoint* p0 = &celGridSrc[0];
 				CelPoint* p1 = &celGridSrc[1];
 				CelPoint* p2 = &celGridSrc[gridWoffset];
 				CelPoint* p3 = &celGridSrc[gridWoffset + 1];
 
-				if (!mariaFill) {
+				if (!info->mariaRender) {
 					if (order & ORDER_CW) {
 						splatTexel(p0, p1, p3, p2, color, dst, info);
 					}
@@ -427,16 +440,17 @@ static void renderCelGridTexels(uint16* dst, int width, int height, int order, b
 	}
 }
 
-static void renderCelPolygon(CCB* cel, uint16* dst, PIXCinfo *info)
+static void renderCelPolygon(CCB* cel, uint16* dst, CelRenderInfo *info)
 {
-	int x, y;
+	int x, y, i, n = 1;
 
 	const int width = getCelWidth(cel);
-	const int height = getCelHeight(cel);
+	int height = getCelHeight(cel);
 	const int bpp = getCelBpp(cel);
 
 	const bool raw = cel->ccb_PRE0 & PRE0_LINEAR;
 	const bool packed = cel->ccb_Flags & CCB_PACKED;
+	const bool lrform = cel->ccb_PRE1 & PRE1_LRFORM;
 
 	int posX, posY;
 	int hdx = cel->ccb_HDX;
@@ -468,14 +482,19 @@ static void renderCelPolygon(CCB* cel, uint16* dst, PIXCinfo *info)
 		order |= ORDER_CCW;
 	}
 
+	if (lrform) {
+		height *= 2;
+		n = 2;
+	}
 
 	posX = cel->ccb_XPos;
 	posY = cel->ccb_YPos;
 	for (y = 0; y < height+1; ++y) {
+		uint16* bitmapLinePtr = bitmapLine;
 		int pposX = posX << 4;
 		int pposY = posY << 4;
 
-		decodeLine(width, bpp, src, pal, raw, packed);
+		if (y < height) decodeLine(width, bpp, src, pal, raw, packed, lrform);
 
 		if (packed) {
 			uint32 value = *src;
@@ -483,41 +502,45 @@ static void renderCelPolygon(CCB* cel, uint16* dst, PIXCinfo *info)
 			woffset = getWoffsetFromData(value, bpp);
 		}
 
-		for (x = 0; x < width+1; ++x) {
+		for (i = 0; i < n; ++i) {
+			for (x = 0; x < width; ++x) {
+				celGridDst->x = pposX >> 20;
+				celGridDst->y = pposY >> 20;
+				celGridDst->c = *bitmapLinePtr++;
+				++celGridDst;
+
+				pposX += hdx;
+				pposY += hdy;
+			}
 			celGridDst->x = pposX >> 20;
 			celGridDst->y = pposY >> 20;
-			celGridDst->c = bitmapLine[x];
 			++celGridDst;
 
-			pposX += hdx;
-			pposY += hdy;
+			hdx += hddx;
+			hdy += hddy;
+
+			posX += vdx;
+			posY += vdy;
 		}
-
-		hdx += hddx;
-		hdy += hddy;
-
-		posX += vdx;
-		posY += vdy;
 		src += woffset;
 	}
 
-	// 40/50-136
-	//cel->ccb_Flags |= CCB_MARIA;
-	renderCelGridTexels(dst, width, height, order, cel->ccb_Flags & CCB_MARIA, info);
+	renderCelGridTexels(dst, width, height, order, info);
 }
 
-static void renderCelSprite(CCB* cel, uint16* dst, PIXCinfo *info)
+static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
 {
 	int x, y;
 
 	const int posX = cel->ccb_XPos >> 16;
 	const int posY = cel->ccb_YPos >> 16;
 	const int width = getCelWidth(cel);
-	const int height = getCelHeight(cel);
+	int height = getCelHeight(cel);
 	const int bpp = getCelBpp(cel);
 
 	const bool raw = cel->ccb_PRE0 & PRE0_LINEAR;
 	const bool packed = cel->ccb_Flags & CCB_PACKED;
+	const bool lrform = cel->ccb_PRE1 & PRE1_LRFORM;
 
 	uint32* src = (uint32*)cel->ccb_SourcePtr;
 	uint16* pal = (uint16*)cel->ccb_PLUTPtr;
@@ -532,10 +555,14 @@ static void renderCelSprite(CCB* cel, uint16* dst, PIXCinfo *info)
 		woffset = getCelWoffset(cel);
 	}
 
+	if (lrform) {
+		height *= 2;
+	}
+
 	for (y = 0; y < height; ++y) {
 		const int yp = posY + y;
 
-		decodeLine(width, bpp, src, pal, raw, packed);
+		decodeLine(width, bpp, src, pal, raw, packed, lrform);
 
 		if (packed) {
 			uint32 value = *src;
@@ -556,7 +583,7 @@ static void renderCelSprite(CCB* cel, uint16* dst, PIXCinfo *info)
 	}
 }
 
-static void decodePIXCinfo(PIXCinfo *info, uint32 pixc)
+static void decodePIXCinfo(CelRenderInfo *info, uint32 pixc)
 {
 	if (pixc == 0x1F00) {
 		info->opaque = true;
@@ -575,9 +602,9 @@ static void decodePIXCinfo(PIXCinfo *info, uint32 pixc)
 	info->avbits = (pixc & PPMPC_AV_MASK) >> PPMPC_AV_SHIFT;
 }
 
-static PIXCinfo* setupPIXCinfo(CCB* cel)
+static CelRenderInfo* setupCelRenderInfo(CCB* cel)
 {
-	static PIXCinfo info[2];
+	static CelRenderInfo info[2];
 
 	const uint32 pixc = cel->ccb_PIXC;
 	// this is p1,p0 instead of p0,p1? Then it matches the bug on 3DO.
@@ -607,14 +634,15 @@ static PIXCinfo* setupPIXCinfo(CCB* cel)
 	}
 
 	info[0].xor = cel->ccb_Flags & CCB_PXOR;
-	info[0].discardZeroRGB = (cel->ccb_Flags & CCB_BGND) == 0;
+	info[0].transparentRGB0 = !(cel->ccb_Flags & CCB_BGND);
+	info[0].mariaRender = cel->ccb_Flags & CCB_MARIA;
 
 	return info;
 }
 
 void renderCel(CCB* cel, uint16* dst)
 {
-	PIXCinfo *info = setupPIXCinfo(cel);
+	CelRenderInfo *info = setupCelRenderInfo(cel);
 
 	if (cel->ccb_HDY == 0 && cel->ccb_VDX == 0 && cel->ccb_HDDX == 0 && cel->ccb_HDDY == 0 && cel->ccb_HDX == (1 << 20) && cel->ccb_VDY == (1 << 16)) {
 		renderCelSprite(cel, dst, info);
