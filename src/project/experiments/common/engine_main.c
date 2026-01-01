@@ -517,7 +517,7 @@ static void renderTransformedPoints(Mesh *mesh)
 
 	ScreenElement *sc = screenElements;
 	for (i=0; i<numVertices; ++i) {
-		if (!sc->outside) {
+		if (sc->outside & INSIDE) {
 			drawPixel(sc->x, sc->y, col);
 		}
 		++sc;
