@@ -208,11 +208,13 @@ void setMeshDottedDisplay(Mesh *ms, bool enable)
 
 void updatePolyTexData(Mesh *ms)
 {
-	const int polysNum = ms->polysNum;
+	const bool isBillBoards = (ms->renderType & MESH_OPTION_RENDER_BILLBOARDS) != 0;
+	int polyDataNum = ms->polysNum;
+	if (isBillBoards) polyDataNum = ms->verticesNum;
 
 	int i;
 	PolyData *poly = ms->poly;
-	for (i=0; i<polysNum; i++) {
+	for (i=0; i< polyDataNum; i++) {
 		Texture *tex = &ms->tex[poly->textureId];
 
 		poly->offsetU = 0;
@@ -225,11 +227,13 @@ void updatePolyTexData(Mesh *ms)
 
 void updateAllPolyTextureId(Mesh *ms, int textureId)
 {
-	const int polysNum = ms->polysNum;
+	const bool isBillBoards = (ms->renderType & MESH_OPTION_RENDER_BILLBOARDS) != 0;
+	int polyDataNum = ms->polysNum;
+	if (isBillBoards) polyDataNum = ms->verticesNum;
 
 	int i;
 	PolyData *poly = ms->poly;
-	for (i=0; i<polysNum; i++) {
+	for (i=0; i< polyDataNum; i++) {
 		poly->textureId = textureId;
 		++poly;
 	}
@@ -241,11 +245,13 @@ void updateAllPolyTextureId(Mesh *ms, int textureId)
 
 void setAllPolyData(Mesh *ms, int numPoints, int textureId, int palId)
 {
-	const int polysNum = ms->polysNum;
+	const bool isBillBoards = (ms->renderType & MESH_OPTION_RENDER_BILLBOARDS) != 0;
+	int polyDataNum = ms->polysNum;
+	if (isBillBoards) polyDataNum = ms->verticesNum;
 
 	int i;
 	PolyData *poly = ms->poly;
-	for (i=0; i<polysNum; i++) {
+	for (i=0; i< polyDataNum; i++) {
 		poly->numPoints = numPoints;
 		poly->textureId = textureId;
 		poly->palId = palId;

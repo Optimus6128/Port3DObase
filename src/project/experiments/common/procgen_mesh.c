@@ -820,6 +820,8 @@ Mesh *initGenMesh(int meshgenId, const MeshgenParams params, int optionsFlags, T
 				addVertex(x, y, z);
 			}
 
+			setAllPolyData(ms, 4, 0, 0);
+
 			prepareCelList(ms);
 		}
 		break;
@@ -839,6 +841,8 @@ Mesh *initGenMesh(int meshgenId, const MeshgenParams params, int optionsFlags, T
 				const int z = getRand(-halfSize, halfSize);
 				addVertex(x, y, z);
 			}
+
+			setAllPolyData(ms, 4, 0, 0);
 
 			prepareCelList(ms);
 		}
