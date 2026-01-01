@@ -247,10 +247,6 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 {
 	uint16* dst = bitmapLine;
 	int wordLength = (width * bpp + 31) >> 5;
-	int pixelsPerWord = 0;
-	if (bpp > 0 && bpp <= 4) {
-		pixelsPerWord = 32 / bpp;	// only valid/used for 1,2,4 decodeline loop
-	}
 
 	if (lrform) {
 		wordLength *= 2;
@@ -313,37 +309,80 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 				switch (bpp) {
 
 				case 1:
-				case 2:
-				case 4:
-				{
-					const int valRange = (1 << bpp) - 1;
-					int bppShift = 0;
-					int i;
-					for (i = 0; i < pixelsPerWord; i += 2) {
-						uint16 c0, c1;
-						c1 = pal[(c >> bppShift) & valRange]; bppShift += bpp;
-						c0 = pal[(c >> bppShift) & valRange]; bppShift += bpp;
+					*dst = pal[(c >> 7) & 1];
+					*(dst + 1) = pal[(c >> 6) & 1];
+					*(dst + 2) = pal[(c >> 5) & 1];
+					*(dst + 3) = pal[(c >> 4) & 1];
+					*(dst + 4) = pal[(c >> 3) & 1];
+					*(dst + 5) = pal[(c >> 2) & 1];
+					*(dst + 6) = pal[(c >> 1) & 1];
+					*(dst + 7) = pal[c & 1];
+					*(dst + 8) = pal[(c >> 15) & 1];
+					*(dst + 9) = pal[(c >> 14) & 1];
+					*(dst + 10) = pal[(c >> 13) & 1];
+					*(dst + 11) = pal[(c >> 12) & 1];
+					*(dst + 12) = pal[(c >> 11) & 1];
+					*(dst + 13) = pal[(c >> 10) & 1];
+					*(dst + 14) = pal[(c >> 9) & 1];
+					*(dst + 15) = pal[(c >> 8) & 1];
+					*(dst + 16) = pal[(c >> 23) & 1];
+					*(dst + 17) = pal[(c >> 22) & 1];
+					*(dst + 18) = pal[(c >> 21) & 1];
+					*(dst + 19) = pal[(c >> 20) & 1];
+					*(dst + 20) = pal[(c >> 19) & 1];
+					*(dst + 21) = pal[(c >> 18) & 1];
+					*(dst + 22) = pal[(c >> 17) & 1];
+					*(dst + 23) = pal[(c >> 16) & 1];
+					*(dst + 24) = pal[(c >> 31) & 1];
+					*(dst + 25) = pal[(c >> 30) & 1];
+					*(dst + 26) = pal[(c >> 29) & 1];
+					*(dst + 27) = pal[(c >> 28) & 1];
+					*(dst + 28) = pal[(c >> 27) & 1];
+					*(dst + 29) = pal[(c >> 26) & 1];
+					*(dst + 30) = pal[(c >> 25) & 1];
+					*(dst + 31) = pal[(c >> 24) & 1];
+					dst += 32;
+					break;
 
-						*dst++ = c0;
-						*dst++ = c1;
-					}
-				}
+				case 2:
+					*dst = pal[(c >> 6) & 3];
+					*(dst + 1) = pal[(c >> 4) & 3];
+					*(dst + 2) = pal[(c >> 2) & 3];
+					*(dst + 3) = pal[c & 3];
+					*(dst + 4) = pal[(c >> 14) & 3];
+					*(dst + 5) = pal[(c >> 12) & 3];
+					*(dst + 6) = pal[(c >> 10) & 3];
+					*(dst + 7) = pal[(c >> 8) & 3];
+					*(dst + 8) = pal[(c >> 22) & 3];
+					*(dst + 9) = pal[(c >> 20) & 3];
+					*(dst + 10) = pal[(c >> 18) & 3];
+					*(dst + 11) = pal[(c >> 16) & 3];
+					*(dst + 12) = pal[(c >> 30) & 3];
+					*(dst + 13) = pal[(c >> 28) & 3];
+					*(dst + 14) = pal[(c >> 26) & 3];
+					*(dst + 15) = pal[(c >> 24) & 3];
+					dst += 16;
+					break;
+
+				case 4:
+					*dst = pal[(c >> 4) & 15];
+					*(dst + 1) = pal[c & 15];
+					*(dst + 2) = pal[(c >> 12) & 15];
+					*(dst + 3) = pal[(c >> 8) & 15];
+					*(dst + 4) = pal[(c >> 20) & 15];
+					*(dst + 5) = pal[(c >> 16) & 15];
+					*(dst + 6) = pal[(c >> 28) & 15];
+					*(dst + 7) = pal[(c >> 24) & 15];
+					dst += 8;
 				break;
 
 				case 8:
-				{
-					const uint16 c0 = pal[c & 31];
-					const uint16 c1 = pal[(c >> 8) & 31];
-					const uint16 c2 = pal[(c >> 16) & 31];
-					const uint16 c3 = pal[(c >> 24) & 31];
-
-					*dst = c0;
-					*(dst + 1) = c1;
-					*(dst + 2) = c2;
-					*(dst + 3) = c3;
+					*dst = pal[c & 31];
+					*(dst + 1) = pal[(c >> 8) & 31];
+					*(dst + 2) = pal[(c >> 16) & 31];
+					*(dst + 3) = pal[(c >> 24) & 31];
 					dst += 4;
 					break;
-				}
 
 				default:
 					break;
