@@ -316,5 +316,6 @@ void setupWindowFeedbackCel(int posX, int posY, int width, int height, int buffe
 	vcnt = (height >> 1) - PRE0_VCNT_PREFETCH;
 
 	cel->ccb_PRE0 = (cel->ccb_PRE0 & ~PRE0_VCNT_MASK) | (vcnt << PRE0_VCNT_SHIFT);
-	cel->ccb_PRE1 = (cel->ccb_PRE1 & ~PRE1_WOFFSET10_MASK) | (woffset << PRE1_WOFFSET10_SHIFT) | (width-PRE1_TLHPCNT_PREFETCH);
+	cel->ccb_PRE1 = (cel->ccb_PRE1 & ~PRE1_WOFFSET10_MASK) | (woffset << PRE1_WOFFSET10_SHIFT);
+	cel->ccb_PRE1 = (cel->ccb_PRE1 & ~PRE1_TLHPCNT_MASK) | (width - PRE1_TLHPCNT_PREFETCH);
 }
