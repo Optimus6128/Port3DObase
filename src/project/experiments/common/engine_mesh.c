@@ -210,10 +210,10 @@ void updatePolyTexData(Mesh *ms)
 {
 	const bool isBillBoards = (ms->renderType & MESH_OPTION_RENDER_BILLBOARDS) != 0;
 	int polyDataNum = ms->polysNum;
-	if (isBillBoards) polyDataNum = ms->verticesNum;
-
-	int i;
 	PolyData *poly = ms->poly;
+	int i;
+
+	if (isBillBoards) polyDataNum = ms->verticesNum;
 	for (i=0; i< polyDataNum; i++) {
 		Texture *tex = &ms->tex[poly->textureId];
 
@@ -229,10 +229,10 @@ void updateAllPolyTextureId(Mesh *ms, int textureId)
 {
 	const bool isBillBoards = (ms->renderType & MESH_OPTION_RENDER_BILLBOARDS) != 0;
 	int polyDataNum = ms->polysNum;
-	if (isBillBoards) polyDataNum = ms->verticesNum;
-
+	PolyData* poly = ms->poly;
 	int i;
-	PolyData *poly = ms->poly;
+
+	if (isBillBoards) polyDataNum = ms->verticesNum;
 	for (i=0; i< polyDataNum; i++) {
 		poly->textureId = textureId;
 		++poly;
@@ -247,10 +247,10 @@ void setAllPolyData(Mesh *ms, int numPoints, int textureId, int palId)
 {
 	const bool isBillBoards = (ms->renderType & MESH_OPTION_RENDER_BILLBOARDS) != 0;
 	int polyDataNum = ms->polysNum;
-	if (isBillBoards) polyDataNum = ms->verticesNum;
-
+	PolyData* poly = ms->poly;
 	int i;
-	PolyData *poly = ms->poly;
+
+	if (isBillBoards) polyDataNum = ms->verticesNum;
 	for (i=0; i< polyDataNum; i++) {
 		poly->numPoints = numPoints;
 		poly->textureId = textureId;
