@@ -9,7 +9,7 @@
 typedef struct CelPoint
 {
 	int x, y;
-	uint32 c;	// Store 16bpp color, - 1 means skip (could have more flags)
+	uint16 c;
 } CelPoint;
 
 #define MAX_TEXTURE_SIZE 1024
@@ -247,6 +247,10 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 {
 	uint16* dst = bitmapLine;
 	int wordLength = (width * bpp + 31) >> 5;
+	int pixelsPerWord = 0;
+	if (bpp > 0 && bpp <= 4) {
+		pixelsPerWord = 32 / bpp;	// only valid/used for 1,2,4 decodeline loop
+	}
 
 	if (lrform) {
 		wordLength *= 2;
@@ -307,28 +311,24 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 				const uint32 c = *src++;
 
 				switch (bpp) {
+
+				case 1:
+				case 2:
 				case 4:
 				{
-					const uint16 c1 = pal[c & 15];
-					const uint16 c0 = pal[(c >> 4) & 15];
-					const uint16 c3 = pal[(c >> 8) & 15];
-					const uint16 c2 = pal[(c >> 12) & 15];
-					const uint16 c5 = pal[(c >> 16) & 15];
-					const uint16 c4 = pal[(c >> 20) & 15];
-					const uint16 c7 = pal[(c >> 24) & 15];
-					const uint16 c6 = pal[(c >> 28) & 15];
+					const int valRange = (1 << bpp) - 1;
+					int bppShift = 0;
+					int i;
+					for (i = 0; i < pixelsPerWord; i += 2) {
+						uint16 c0, c1;
+						c1 = pal[(c >> bppShift) & valRange]; bppShift += bpp;
+						c0 = pal[(c >> bppShift) & valRange]; bppShift += bpp;
 
-					*dst = c0;
-					*(dst + 1) = c1;
-					*(dst + 2) = c2;
-					*(dst + 3) = c3;
-					*(dst + 4) = c4;
-					*(dst + 5) = c5;
-					*(dst + 6) = c6;
-					*(dst + 7) = c7;
-					dst += 8;
-					break;
+						*dst++ = c0;
+						*dst++ = c1;
+					}
 				}
+				break;
 
 				case 8:
 				{
@@ -412,7 +412,7 @@ static void renderCelGridTexels(uint16* dst, int width, int height, int order, C
 
 	for (y=0; y<height; ++y) {
 		for (x = 0; x < width; ++x) {
-			const uint16 color = celGridSrc->c & 65535;
+			const uint16 color = celGridSrc->c;
 			if (!(color == 0 && info->transparentRGB0)) {
 				CelPoint* p0 = &celGridSrc[0];
 				CelPoint* p1 = &celGridSrc[1];
@@ -531,7 +531,7 @@ static void renderCelPolygon(CCB* cel, uint16* dst, CelRenderInfo *info)
 
 static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
 {
-	int x, y;
+	int x, y, i, n = 1;
 
 	const int posX = cel->ccb_XPos >> 16;
 	const int posY = cel->ccb_YPos >> 16;
@@ -558,10 +558,11 @@ static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
 
 	if (lrform) {
 		height *= 2;
+		n = 2;
 	}
 
-	for (y = 0; y < height; ++y) {
-		const int yp = posY + y;
+	for (y = 0; y < height; y+=n) {
+		uint16* bitmapLinePtr = bitmapLine;
 
 		decodeLine(width, bpp, src, pal, raw, packed, lrform);
 
@@ -571,12 +572,15 @@ static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
 			woffset = getWoffsetFromData(value, bpp);
 		}
 
-		if (yp >= 0 && yp < SCREEN_H) {
-			for (x = 0; x < width; ++x) {
-				const int xp = posX + x;
-				if (xp >= 0 && xp < SCREEN_W) {
-					const int offset = (yp >> 1) * SCREEN_W * 2 + (yp & 1) + (xp << 1);
-					pixelProcessorRender(dst+offset, bitmapLine[x], info);
+		for (i = 0; i < n; ++i) {
+			const int yp = posY + y + i;
+			if (yp >= 0 && yp < SCREEN_H) {
+				for (x = 0; x < width; ++x) {
+					const int xp = posX + x;
+					if (xp >= 0 && xp < SCREEN_W) {
+						const int offset = (yp >> 1) * SCREEN_W * 2 + (yp & 1) + (xp << 1);
+						pixelProcessorRender(dst + offset, *bitmapLinePtr++, info);
+					}
 				}
 			}
 		}
