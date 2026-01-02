@@ -678,7 +678,7 @@ static CelRenderInfo* setupCelRenderInfo(CCB* cel)
 	}
 
 	info[0].xor = cel->ccb_Flags & CCB_PXOR;
-	info[0].transparentRGB0 = !(cel->ccb_Flags & CCB_BGND);
+	info[0].transparentRGB0 = !(cel->ccb_Flags & CCB_BGND) | (cel->ccb_Flags & CCB_PACKED);
 	info[0].mariaRender = cel->ccb_Flags & CCB_MARIA;
 
 	return info;
