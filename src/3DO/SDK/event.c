@@ -11,6 +11,9 @@ static MouseEventData globalMouseEventData;
 void InitEventUtility(int32 numControlPads, int32 numMice, int32 focusListener)
 {
 	globalControlPadEventData.cped_ButtonBits = 0;
+	globalMouseEventData.med_ButtonBits = 0;
+	globalMouseEventData.med_HorizPosition = 0;
+	globalMouseEventData.med_VertPosition = 0;
 }
 
 Err GetControlPad(int32 padNumber, int32 wait, ControlPadEventData* data)

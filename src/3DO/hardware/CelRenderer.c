@@ -1,11 +1,5 @@
 #include "CelRenderer.h"
 
-// For the time being, I set the default screen width/height, but that could change if PAL or screen region
-// I will have to change some functions to get it from the screenItem or something..
-#define SCREEN_W 320
-#define SCREEN_H 240
-
-
 typedef struct CelPoint
 {
 	int x, y;
@@ -45,15 +39,6 @@ static uint32 unpackedSrc[MAX_TEXTURE_SIZE+1];
 static CelPoint celGrid[(MAX_TEXTURE_SIZE+1) * (MAX_TEXTURE_SIZE+1)];
 
 
-static int getCelWidth(CCB *cel)
-{
-	return (cel->ccb_PRE1 & PRE1_TLHPCNT_MASK) + PRE1_TLHPCNT_PREFETCH;
-}
-
-static int getCelHeight(CCB *cel)
-{
-	return ((cel->ccb_PRE0 & PRE0_VCNT_MASK) >> PRE0_VCNT_SHIFT) + PRE0_VCNT_PREFETCH;
-}
 
 static int getCelBpp(CCB *cel)
 {
@@ -68,8 +53,7 @@ static int getWoffsetFromData(uint32 value, int bpp)
 
 	if (bpp < 8) {
 		woffset = (value & PRE1_WOFFSET8_MASK) >> PRE1_WOFFSET8_SHIFT;
-	}
-	else {
+	} else {
 		woffset = (value & PRE1_WOFFSET10_MASK) >> PRE1_WOFFSET10_SHIFT;
 	}
 
@@ -82,11 +66,11 @@ static int getCelWoffset(CCB* cel)
 }
 
 
-static void pixelProcessorRender(uint16* dst, uint16 color, CelRenderInfo *info)
+static void pixelProcessorRender(uint16* vramDst, uint16 color, CelRenderInfo *info)
 {
 	if (info->opaque) {
 		if (!(color == 0 && info->transparentRGB0)) {
-			*dst = color;
+			*vramDst = color;
 		}
 	} else {
 		int r1, g1, b1;
@@ -98,12 +82,13 @@ static void pixelProcessorRender(uint16* dst, uint16 color, CelRenderInfo *info)
 		const int pdv = info->pdv;
 		const int dv2 = info->dv2;
 		const int avBits = info->avbits;
-		const bool doXor = info->xor;
+		const bool doXor = info-> xor;
 
 		if (info->source1 == PPMPC_1S_PDC) {
 			src1 = color;
-		} else {
-			src1 = *dst;
+		}
+		else {
+			src1 = *vramDst;
 		}
 
 		r1 = (((src1 >> 10) & 31) * pmv) / pdv;
@@ -111,32 +96,33 @@ static void pixelProcessorRender(uint16* dst, uint16 color, CelRenderInfo *info)
 		b1 = ((src1 & 31) * pmv) / pdv;
 
 		switch (info->source2) {
-			case PPMPC_2S_0:
-				r1 >>= dv2;
-				g1 >>= dv2;
-				b1 >>= dv2;
+		case PPMPC_2S_0:
+			r1 >>= dv2;
+			g1 >>= dv2;
+			b1 >>= dv2;
 			break;
 
-			case PPMPC_2S_CCB:
-				if (!doXor) {
-					r1 = (r1 + avBits) >> dv2;
-					g1 = (g1 + avBits) >> dv2;
-					b1 = (b1 + avBits) >> dv2;
-				} else {
-					r1 = (r1 ^ avBits) >> dv2;
-					g1 = (g1 ^ avBits) >> dv2;
-					b1 = (b1 ^ avBits) >> dv2;
-				}
+		case PPMPC_2S_CCB:
+			if (!doXor) {
+				r1 = (r1 + avBits) >> dv2;
+				g1 = (g1 + avBits) >> dv2;
+				b1 = (b1 + avBits) >> dv2;
+			}
+			else {
+				r1 = (r1 ^ avBits) >> dv2;
+				g1 = (g1 ^ avBits) >> dv2;
+				b1 = (b1 ^ avBits) >> dv2;
+			}
 			break;
 
-			case PPMPC_2S_CFBD:
-				src2 = *dst;
-				addSrc2 = true;
+		case PPMPC_2S_CFBD:
+			src2 = *vramDst;
+			addSrc2 = true;
 			break;
 
-			case PPMPC_2S_PDC:
-				src2 = color;
-				addSrc2 = true;
+		case PPMPC_2S_PDC:
+			src2 = color;
+			addSrc2 = true;
 			break;
 		}
 
@@ -148,7 +134,8 @@ static void pixelProcessorRender(uint16* dst, uint16 color, CelRenderInfo *info)
 				r1 = (r1 + r2) >> dv2;
 				g1 = (g1 + g2) >> dv2;
 				b1 = (b1 + b2) >> dv2;
-			} else {
+			}
+			else {
 				r1 = (r1 ^ r2) >> dv2;
 				g1 = (g1 ^ g2) >> dv2;
 				b1 = (b1 ^ b2) >> dv2;
@@ -157,9 +144,10 @@ static void pixelProcessorRender(uint16* dst, uint16 color, CelRenderInfo *info)
 		if (r1 > 31) r1 = 31;
 		if (g1 > 31) g1 = 31;
 		if (b1 > 31) b1 = 31;
+
 		color = (r1 << 10) | (g1 << 5) | b1;
 		if (!(color == 0 && info->transparentRGB0)) {
-			*dst = color;
+			*vramDst = color;
 		}
 	}
 }
@@ -299,8 +287,7 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 					break;
 				}
 			}
-		}
-		else {
+	} else {
 			if (!pal) return;
 
 			while (wordLength-- > 0) {
@@ -400,54 +387,55 @@ static bool pointInsideQuad(int x, int y, CelPoint* p0, CelPoint* p1, CelPoint* 
 			((y - p3->y) * (p0->x - p3->x) - (x - p3->x) * (p0->y - p3->y) >= 0);
 }
 
-static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* dst, CelRenderInfo *info)
+static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* vramDst, CelRenderInfo *info)
 {
 	int x, y;
-	int xMin, yMin, xMax, yMax;
 
-	//if (!(color == 0 && info->discardZeroRGB)) {
-		xMin = p0->x;
-		yMin = p0->y;
-		xMax = xMin;
-		yMax = yMin;
+	int xMin = p0->x;
+	int yMin = p0->y;
+	int xMax = xMin;
+	int yMax = yMin;
 
-		if (p1->x < xMin) xMin = p1->x;
-		if (p1->x > xMax) xMax = p1->x;
-		if (p1->y < yMin) yMin = p1->y;
-		if (p1->y > yMax) yMax = p1->y;
+	if (p1->x < xMin) xMin = p1->x;
+	if (p1->x > xMax) xMax = p1->x;
+	if (p1->y < yMin) yMin = p1->y;
+	if (p1->y > yMax) yMax = p1->y;
 
-		if (p2->x < xMin) xMin = p2->x;
-		if (p2->x > xMax) xMax = p2->x;
-		if (p2->y < yMin) yMin = p2->y;
-		if (p2->y > yMax) yMax = p2->y;
+	if (p2->x < xMin) xMin = p2->x;
+	if (p2->x > xMax) xMax = p2->x;
+	if (p2->y < yMin) yMin = p2->y;
+	if (p2->y > yMax) yMax = p2->y;
 
-		if (p3->x < xMin) xMin = p3->x;
-		if (p3->x > xMax) xMax = p3->x;
-		if (p3->y < yMin) yMin = p3->y;
-		if (p3->y > yMax) yMax = p3->y;
+	if (p3->x < xMin) xMin = p3->x;
+	if (p3->x > xMax) xMax = p3->x;
+	if (p3->y < yMin) yMin = p3->y;
+	if (p3->y > yMax) yMax = p3->y;
 
-		for (y = yMin; y < yMax; ++y) {
-			for (x = xMin; x < xMax; ++x) {
-				if (x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H) {
-					#ifdef SPLAT_PRECISE_TEXEL
-						if (pointInsideQuad(x,y, p0,p1,p2,p3)) {
-					#endif
-							const int offset = (y >> 1) * SCREEN_W * 2 + (y & 1) + (x << 1);
-							pixelProcessorRender(dst + offset, color, info);
-					#ifdef SPLAT_PRECISE_TEXEL
-						}
-					#endif
+	if (xMin < 0) xMin = 0;
+	if (xMax > SCREEN_W - 1) xMax = SCREEN_W - 1;
+	if (yMin < 0) yMin = 0;
+	if (yMax > SCREEN_H - 1) yMax = SCREEN_H - 1;
+
+	for (y = yMin; y < yMax; ++y) {
+		for (x = xMin; x < xMax; ++x) {
+			#ifdef SPLAT_PRECISE_TEXEL
+				if (pointInsideQuad(x,y, p0,p1,p2,p3)) {
+			#endif
+			const int offset = VRAM_OFS(x, y);
+			pixelProcessorRender(vramDst + offset, color, info);
+			#ifdef SPLAT_PRECISE_TEXEL
 				}
-			}
+			#endif
 		}
-	//}
+	}
 }
 
-static void renderCelGridTexels(uint16* dst, int width, int height, int order, CelRenderInfo *info)
+static void renderCelGridTexels(uint16* vramDst, int width, int height, int order, CelRenderInfo *info)
 {
 	int x, y;
 	CelPoint* celGridSrc = celGrid;
 	const int gridWoffset = width + 1;
+const bool mariaFill = info->mariaRender;
 
 	for (y=0; y<height; ++y) {
 		for (x = 0; x < width; ++x) {
@@ -458,19 +446,19 @@ static void renderCelGridTexels(uint16* dst, int width, int height, int order, C
 				CelPoint* p2 = &celGridSrc[gridWoffset];
 				CelPoint* p3 = &celGridSrc[gridWoffset + 1];
 
-				if (!info->mariaRender) {
+				if (!mariaFill) {
 					if (order & ORDER_CW) {
-						splatTexel(p0, p1, p3, p2, color, dst, info);
+						splatTexel(p0, p1, p3, p2, color, vramDst, info);
 					}
 					if (order & ORDER_CCW) {
-						splatTexel(p2, p3, p1, p0, color, dst, info);
+						splatTexel(p2, p3, p1, p0, color, vramDst, info);
 					}
 				} else {
 					const int xp = p0->x;
 					const int yp = p0->y;
 					if (xp >= 0 && xp < SCREEN_W && yp >= 0 && yp < SCREEN_H) {
-						const int offset = (yp >> 1) * SCREEN_W * 2 + (yp & 1) + (xp << 1);
-						pixelProcessorRender(dst + offset, color, info);
+						const int offset = VRAM_OFS(xp, yp);
+						pixelProcessorRender(vramDst + offset, color, info);
 					}
 				}
 			}
@@ -480,12 +468,12 @@ static void renderCelGridTexels(uint16* dst, int width, int height, int order, C
 	}
 }
 
-static void renderCelPolygon(CCB* cel, uint16* dst, CelRenderInfo *info)
+static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 {
 	int x, y, i, n = 1;
 
-	const int width = getCelWidth(cel);
-	int height = getCelHeight(cel);
+	const int width = GET_CEL_WIDTH(cel);
+	int height = GET_CEL_HEIGHT(cel);
 	const int bpp = getCelBpp(cel);
 
 	const bool raw = cel->ccb_PRE0 & PRE0_LINEAR;
@@ -564,8 +552,7 @@ static void renderCelPolygon(CCB* cel, uint16* dst, CelRenderInfo *info)
 		}
 		src += woffset;
 	}
-
-	renderCelGridTexels(dst, width, height, order, info);
+	renderCelGridTexels(vramDst, width, height, order, info);
 }
 
 static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
@@ -574,8 +561,8 @@ static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
 
 	const int posX = cel->ccb_XPos >> 16;
 	const int posY = cel->ccb_YPos >> 16;
-	const int width = getCelWidth(cel);
-	int height = getCelHeight(cel);
+	const int width = GET_CEL_WIDTH(cel);
+	int height = GET_CEL_HEIGHT(cel);
 	const int bpp = getCelBpp(cel);
 
 	const bool raw = cel->ccb_PRE0 & PRE0_LINEAR;
@@ -651,7 +638,6 @@ static CelRenderInfo* setupCelRenderInfo(CCB* cel)
 	static CelRenderInfo info[2];
 
 	const uint32 pixc = cel->ccb_PIXC;
-	// this is p1,p0 instead of p0,p1? Then it matches the bug on 3DO.
 	const uint32 p1 = (pixc >> 16) & 65535;
 	const uint32 p0 = pixc & 65535;
 
