@@ -63,9 +63,8 @@ static void prepareGeckoCels()
 				#ifndef SINGLE_DRAW_CEL_CALLS
 					linkCel(&microGexCels[i-1], &microGexCels[i]);
 				#endif
-				// Need to comment in those lines back and actually implement these things..
-				//microGexCels[i].ccb_Flags &= ~(CCB_LDSIZE | CCB_LDPRS | CCB_LDPPMP);
-				//memcpy(&microGexCels[i].ccb_HDX, &microGexCels[i].ccb_PRE0, 8);
+				microGexCels[i].ccb_Flags &= ~(CCB_LDSIZE | CCB_LDPRS | CCB_LDPPMP);
+				memcpy(&microGexCels[i].ccb_HDX, &microGexCels[i].ccb_PRE0, 8);
 			}
 			++i;
 		}

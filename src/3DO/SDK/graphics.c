@@ -5,6 +5,7 @@
 #include "../main.h"
 #include "hardware/CelRenderer.h"
 
+#include <string.h>
 #include <stdlib.h>
 
 static VDLmapColor VDLmap[32];
@@ -52,14 +53,70 @@ void MapCel(CCB* ccb, Point* quad)
 		<< 20) / (ccb->ccb_Width * ccb->ccb_Height);
 }
 
+static void prepareCel(CCB *src, CCB *dst)
+{
+	static CCB prevCelState;
+
+	const uint32 srcFlags = src->ccb_Flags;
+	int32* celDataPtr = &src->ccb_XPos;
+
+	dst->ccb_Flags = srcFlags;
+	dst->ccb_NextPtr = src->ccb_NextPtr;
+	dst->ccb_SourcePtr = src->ccb_SourcePtr;
+
+	if (srcFlags & CCB_LDPLUT) {
+		dst->ccb_PLUTPtr = src->ccb_PLUTPtr;
+		prevCelState.ccb_PLUTPtr = src->ccb_PLUTPtr;
+	} else {
+		dst->ccb_PLUTPtr = prevCelState.ccb_PLUTPtr;
+	}
+
+	if (srcFlags & CCB_YOXY) {
+		memcpy(&dst->ccb_XPos, celDataPtr, 8);
+		memcpy(&prevCelState.ccb_XPos, celDataPtr, 8);
+		celDataPtr += 2;
+	} else {
+		memcpy(&dst->ccb_XPos, &prevCelState.ccb_XPos, 8);
+	}
+
+	if (srcFlags & CCB_LDSIZE) {
+		memcpy(&dst->ccb_HDX, celDataPtr, 16);
+		memcpy(&prevCelState.ccb_HDX, celDataPtr, 16);
+		celDataPtr += 4;
+	} else {
+		memcpy(&dst->ccb_HDX, &prevCelState.ccb_HDX, 16);
+	}
+
+	if (srcFlags & CCB_LDPRS) {
+		memcpy(&dst->ccb_HDDX, celDataPtr, 8);
+		memcpy(&prevCelState.ccb_HDDX, celDataPtr, 8);
+		celDataPtr += 2;
+	} else {
+		memcpy(&dst->ccb_HDDX, &prevCelState.ccb_HDDX, 8);
+	}
+
+	if (srcFlags & CCB_LDPPMP) {
+		dst->ccb_PIXC = *celDataPtr++;
+		prevCelState.ccb_PIXC = dst->ccb_PIXC;
+	} else {
+		dst->ccb_PIXC = prevCelState.ccb_PIXC;
+	}
+
+	//CCB_CCBPRE in the future?
+	memcpy(&dst->ccb_PRE0, celDataPtr, 8);
+}
+
 Err DrawCels(Item bitmapItem, CCB* ccb)
 {
+	static CCB preparedCel;
+
 	Bitmap* bitmap = (Bitmap*)bitmapItem;
 	uint16* dst = (uint16*)bitmap->bm_Buffer;
 
 	while(ccb != NULL) {
 		if (!(ccb->ccb_Flags & CCB_SKIP)) {
-			renderCel(ccb, dst);
+			prepareCel(ccb, &preparedCel);
+			renderCel(&preparedCel, dst);
 		}
 		if (ccb->ccb_Flags & CCB_LAST) break;
 		ccb = ccb->ccb_NextPtr;
