@@ -102,8 +102,12 @@ static void prepareCel(CCB *src, CCB *dst)
 		dst->ccb_PIXC = prevCelState.ccb_PIXC;
 	}
 
-	//CCB_CCBPRE in the future?
-	memcpy(&dst->ccb_PRE0, celDataPtr, 8);
+	if (srcFlags & CCB_CCBPRE) {
+		memcpy(&dst->ccb_PRE0, celDataPtr, 8);
+	} else {
+		memcpy(&dst->ccb_PRE0, dst->ccb_SourcePtr, 8);
+		dst->ccb_SourcePtr = (CelData*)((uint32*)dst->ccb_SourcePtr + 2);
+	}
 }
 
 Err DrawCels(Item bitmapItem, CCB* ccb)

@@ -32,11 +32,12 @@ static void copyGeckoCels()
 	int x,y;
 	int i,j;
 
-	uint16 *dst = geckoCelStorage = (uint16*)AllocMem(mg_width * mg_height * SPR_W * SPR_H * 2, MEMTYPE_ANY);
+	uint16 *dst = geckoCelStorage = (uint16*)AllocMem(mg_width * mg_height * (SPR_W * SPR_H * 2 + 8), MEMTYPE_ANY);	// 8bytes for PRE0, PRE1 before the bitmaps
 
 	for (y=0; y<geckoCel->ccb_Height; y+=SPR_H) {
 		for (x=0; x<geckoCel->ccb_Width; x+=SPR_W) {
 			uint16 *src = (uint16*)geckoCel->ccb_SourcePtr + y * geckoCel->ccb_Width + x;
+			dst += 4;	// start after PRE0/PRE1 storage
 			for (j=0; j<SPR_H; ++j) {
 				for (i=0; i<SPR_W; ++i) {
 					*dst++ = *(src + j * geckoCel->ccb_Width + i);
@@ -53,18 +54,21 @@ static void prepareGeckoCels()
 
 	for (y=0; y<geckoCel->ccb_Height; y+=SPR_H) {
 		for (x=0; x<geckoCel->ccb_Width; x+=SPR_W) {
-			uint16 *dstPtr = geckoCelStorage + i * SPR_W * SPR_H;
+			uint16 *dstPtr = geckoCelStorage + i * (SPR_W * SPR_H + 4);
 			setupCelData(NULL, dstPtr, &microGexCels[i]);
+
+			memcpy(dstPtr, &microGexCels[i].ccb_PRE0, 8);
 
 			microGexCels[i].ccb_XPos = x << 16;
 			microGexCels[i].ccb_YPos = y << 16;
 			microGexCels[i].ccb_Flags |= CCB_BGND;
+			microGexCels[i].ccb_Flags &= ~CCB_CCBPRE;
 			if (i>0) {
 				#ifndef SINGLE_DRAW_CEL_CALLS
 					linkCel(&microGexCels[i-1], &microGexCels[i]);
 				#endif
 				microGexCels[i].ccb_Flags &= ~(CCB_LDSIZE | CCB_LDPRS | CCB_LDPPMP);
-				memcpy(&microGexCels[i].ccb_HDX, &microGexCels[i].ccb_PRE0, 8);
+				//memcpy(&microGexCels[i].ccb_HDX, &microGexCels[i].ccb_PRE0, 8);
 			}
 			++i;
 		}
