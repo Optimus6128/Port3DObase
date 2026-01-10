@@ -3,7 +3,7 @@
 typedef struct CelPoint
 {
 	int x, y;
-	uint16 c;
+	uint32 colorInfo;
 } CelPoint;
 
 #define MAX_TEXTURE_SIZE 1024
@@ -33,8 +33,8 @@ typedef struct CelRenderInfo
 
 
 
-static uint16 bitmapLine[2*MAX_TEXTURE_SIZE+1];
-static uint32 unpackedSrc[MAX_TEXTURE_SIZE+1];
+static uint32 bitmapLine[2*MAX_TEXTURE_SIZE+1];
+static uint8 unpackedSrc[MAX_TEXTURE_SIZE+1];
 
 static CelPoint celGrid[(MAX_TEXTURE_SIZE+1) * (MAX_TEXTURE_SIZE+1)];
 
@@ -47,30 +47,30 @@ static int getCelBpp(CCB *cel)
 	return bppTable[cel->ccb_PRE0 & PRE0_BPP_MASK];
 }
 
-static int getWoffsetFromData(uint32 value, int bpp)
+static int getCelWoffset(CCB* cel)
 {
-	int woffset;
+	int bpp = getCelBpp(cel);
+	int value = cel->ccb_PRE1;
 
+	int woffset;
 	if (bpp < 8) {
 		woffset = (value & PRE1_WOFFSET8_MASK) >> PRE1_WOFFSET8_SHIFT;
-	} else {
+	}
+	else {
 		woffset = (value & PRE1_WOFFSET10_MASK) >> PRE1_WOFFSET10_SHIFT;
 	}
 
 	return woffset + PRE1_WOFFSET_PREFETCH;
 }
 
-static int getCelWoffset(CCB* cel)
-{
-	return getWoffsetFromData(cel->ccb_PRE1, getCelBpp(cel));
-}
 
-
-static void pixelProcessorRender(uint16* vramDst, uint16 color, CelRenderInfo *info)
+static void pixelProcessorRender(uint16* vramDst, uint32 colorInfo, CelRenderInfo *info)
 {
+	uint16 color = colorInfo & 65535;
+
 	if (info->opaque) {
 		if (!(color == 0 && info->transparentRGB0)) {
-			*vramDst = color;
+			*vramDst = (uint16)color;
 		}
 	} else {
 		int r1, g1, b1;
@@ -178,13 +178,13 @@ static void unpackLine(uint8 *src, int bpp)
 			while(header = *src++, command = header >> 6, command) {
 				count = (header & 63) + 1;
 
-				if (command==1) {
+				if (command==PACK_LITERAL) {
 					do {
 						*dst++ = *src++;
 					} while (--count != 0);
 				} else {
 					uint8 value = 0;
-					if (command==3) {
+					if (command==PACK_PACKED) {
 						value = *src++;
 					}
 					do {
@@ -203,7 +203,7 @@ static void unpackLine(uint8 *src, int bpp)
 				uint16 *src16 = (uint16*)src;
 				count = (header & 63) + 1;
 
-				if (command==1) {
+				if (command==PACK_LITERAL) {
 					do {
 						uint16 value = *src16++;
 						value = SHORT_ENDIAN_FLIP(value);
@@ -211,7 +211,7 @@ static void unpackLine(uint8 *src, int bpp)
 					} while (--count != 0);
 				} else {
 					uint16 value = 0;
-					if (command==3) {
+					if (command==PACK_PACKED) {
 						value = *src16++;
 						value = SHORT_ENDIAN_FLIP(value);
 					}
@@ -233,7 +233,7 @@ static void unpackLine(uint8 *src, int bpp)
 
 static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, bool packed, bool lrform)
 {
-	uint16* dst = bitmapLine;
+	uint32* dst = bitmapLine;
 	int wordLength = (width * bpp + 31) >> 5;
 
 	if (lrform) {
@@ -249,7 +249,7 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 	} else {
 		if (packed) {
 			unpackLine((uint8*)src + 2, bpp);
-			src = unpackedSrc;
+			src = (uint32*)unpackedSrc;
 		}
 
 		if (raw) {
@@ -387,7 +387,7 @@ static bool pointInsideQuad(int x, int y, CelPoint* p0, CelPoint* p1, CelPoint* 
 			((y - p3->y) * (p0->x - p3->x) - (x - p3->x) * (p0->y - p3->y) >= 0);
 }
 
-static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* vramDst, CelRenderInfo *info)
+static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint32 color, uint16* vramDst, CelRenderInfo *info)
 {
 	int x, y;
 
@@ -435,11 +435,11 @@ static void renderCelGridTexels(uint16* vramDst, int width, int height, int orde
 	int x, y;
 	CelPoint* celGridSrc = celGrid;
 	const int gridWoffset = width + 1;
-const bool mariaFill = info->mariaRender;
+	const bool mariaFill = info->mariaRender;
 
 	for (y=0; y<height; ++y) {
 		for (x = 0; x < width; ++x) {
-			const uint16 color = celGridSrc->c;
+			const uint32 color = celGridSrc->colorInfo;
 			if (!(color == 0 && info->transparentRGB0)) {
 				CelPoint* p0 = &celGridSrc[0];
 				CelPoint* p1 = &celGridSrc[1];
@@ -465,6 +465,16 @@ const bool mariaFill = info->mariaRender;
 			++celGridSrc;
 		}
 		++celGridSrc;
+	}
+}
+
+static int getWoffsetFromPackedData(void *src, int bpp)
+{
+	uint8* src8 = (uint8*)src;
+	if (bpp < 8) {
+		return *src8 + PRE1_WOFFSET_PREFETCH;
+	} else {
+		return (src8[1] | (src8[0] << 8)) + PRE1_WOFFSET_PREFETCH;
 	}
 }
 
@@ -518,14 +528,12 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	posX = cel->ccb_XPos;
 	posY = cel->ccb_YPos;
 	for (y = 0; y < height+1; ++y) {
-		uint16* bitmapLinePtr = bitmapLine;
+		uint32* bitmapLinePtr = bitmapLine;
 
 		if (y < height) decodeLine(width, bpp, src, pal, raw, packed, lrform);
 
 		if (packed) {
-			uint32 value = *src;
-			value = LONG_ENDIAN_FLIP(value);
-			woffset = getWoffsetFromData(value, bpp);
+			woffset = getWoffsetFromPackedData(src, bpp);
 		}
 
 		for (i = 0; i < n; ++i) {
@@ -534,7 +542,7 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 			for (x = 0; x < width; ++x) {
 				celGridDst->x = pposX >> 20;
 				celGridDst->y = pposY >> 20;
-				celGridDst->c = *bitmapLinePtr++;
+				celGridDst->colorInfo = *bitmapLinePtr++;
 				++celGridDst;
 
 				pposX += hdx;
@@ -588,14 +596,12 @@ static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
 	}
 
 	for (y = 0; y < height; y+=n) {
-		uint16* bitmapLinePtr = bitmapLine;
+		uint32* bitmapLinePtr = bitmapLine;
 
 		decodeLine(width, bpp, src, pal, raw, packed, lrform);
 
 		if (packed) {
-			uint32 value = *src;
-			value = LONG_ENDIAN_FLIP(value);
-			woffset = getWoffsetFromData(value, bpp);
+			woffset = getWoffsetFromPackedData(src, bpp);
 		}
 
 		for (i = 0; i < n; ++i) {
@@ -664,7 +670,7 @@ static CelRenderInfo* setupCelRenderInfo(CCB* cel)
 	}
 
 	info[0].xor = cel->ccb_Flags & CCB_PXOR;
-	info[0].transparentRGB0 = !(cel->ccb_Flags & CCB_BGND) | (cel->ccb_Flags & CCB_PACKED);
+	info[0].transparentRGB0 = !(cel->ccb_Flags & CCB_BGND);
 	info[0].mariaRender = cel->ccb_Flags & CCB_MARIA;
 
 	return info;

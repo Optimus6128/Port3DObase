@@ -215,7 +215,8 @@ static void padLineBitsAndWriteAddressOffset(int addressOffsetIndex, int bpp)
 	const int leftoverBits = currentBit & 31;
 	const int remainingBits = (32 - leftoverBits) & 31;
 
-	int totalWords, wordOffset;
+	int totalWords;
+	uint16 wordOffset;
 
 	writeValueBits(0, remainingBits);
 
@@ -227,10 +228,15 @@ static void padLineBitsAndWriteAddressOffset(int addressOffsetIndex, int bpp)
 	}
 
 	wordOffset = totalWords - 2;
-	if (bpp >= 8)
-		*((uint16*)&tempBuff[addressOffsetIndex]) = wordOffset & 1023;
-	else
+	if (bpp >= 8) {
+		wordOffset &= 1023;
+		#ifndef BIG_ENDIAN
+			wordOffset = SHORT_ENDIAN_FLIP(wordOffset);
+		#endif
+		*((uint16*)&tempBuff[addressOffsetIndex]) = wordOffset;
+	} else {
 		tempBuff[addressOffsetIndex] = wordOffset & 255;
+	}
 }
 
 

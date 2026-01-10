@@ -6,6 +6,10 @@
 
 #define OPERA_MATH_FP 16
 
+#ifndef PI
+#define PI 3.14159265359f
+#endif
+
 /*
  * frac16 is a 16.16 fraction
  * frac32 is a 32.32 fraction
@@ -25,7 +29,7 @@ typedef frac30 vec3f30[3], vec4f30[4], mat33f30[3][3], mat44f30[4][4], mat34f30[
 #define SinF16(a) sineLUT[((a) & ((1 << 24) - 1)) >> (16 - (SINE_LUT_BITS - SINE_DEG_BITS))]
 #define CosF16(a) SinF16((a) + (64 << 16))
 
-#define Atan2F16(a,b) (int)(atan2((double)(a) / 65536.0, (double)(b) / 65536.0) * 65536.0)
+#define Atan2F16(a,b) (int)(atan2f((float)(a) / 65536.0f, (float)(b) / 65536.0f) * (16777216.0f / (2.0f * PI)))
 
 void MulManyVec3Mat33_F16(vec3f16* dest, vec3f16* src, mat33f16 mat, int32 count);
 void MulVec3Mat33_F16(vec3f16 dest, vec3f16 vec, mat33f16 mat);

@@ -68,7 +68,6 @@ static void prepareGeckoCels()
 					linkCel(&microGexCels[i-1], &microGexCels[i]);
 				#endif
 				microGexCels[i].ccb_Flags &= ~(CCB_LDSIZE | CCB_LDPRS | CCB_LDPPMP);
-				//memcpy(&microGexCels[i].ccb_HDX, &microGexCels[i].ccb_PRE0, 8);
 			}
 			++i;
 		}

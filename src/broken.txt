@@ -36,10 +36,6 @@ Experiments Sprites
 
 Condition: Some things work, lot's to fix.
 
-* 1920 Gecko Sprites
-	+ Almost no display. Those were like 4x4 16bpp iirc. My theory, tiny ones are not yet handled correctly in my CEL renderer. I might not assume 8 bytes width with padding.
-		EDIT: However, 4 16bit pixels are 8 bytes width, so what?
-
 * Background Layers
 	+ Seems to work pretty well. Not sure about few colors. But mostly seem ok and blend all layers and SPORT together. Moving around might mean I also emulate correctly the sub window CEL flags and bits.
 	EDIT: Recently I add CCB_BGND which broke them, then fixed it (packed will always see RGB0 as transparent regardless of other flags)
