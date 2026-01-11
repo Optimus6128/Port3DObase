@@ -68,11 +68,6 @@ void FliColor(AnimFLI *anim)
 			const int g = (fliBuffer[anim->dataIndex++]>>1);
 			const int b = (fliBuffer[anim->dataIndex++]>>1);
 			uint32 c = (r<<(10+PAL_PAD_BITS)) | (g<<(5+PAL_PAD_BITS)) | (b << PAL_PAD_BITS);
-			#ifndef BIG_ENDIAN
-				uint32 c0 = (c >> 16);
-				uint32 c1 = c & 65535;
-				c = (SHORT_ENDIAN_FLIP(c0) << 16) | SHORT_ENDIAN_FLIP(c1);
-			#endif
 			vga_pal[ci++] = c;
 		}
 	}
@@ -257,8 +252,8 @@ void FLIupdateFullFrameSlow(uint16* dst, uint32* vga_pal, uint32* vga32)
 			*dst32++ = vga_pal[(c >> 24) & 255] | (vga_pal[(c >> 16) & 255] >> PAL_PAD_BITS);
 			*dst32++ = vga_pal[(c >> 8) & 255] | (vga_pal[c & 255] >> PAL_PAD_BITS);
 		#else
-			*dst32++ = vga_pal[c & 255] | (vga_pal[(c >> 8) & 255] >> PAL_PAD_BITS);
-			*dst32++ = vga_pal[(c >> 16) & 255] | (vga_pal[(c >> 24) & 255] >> PAL_PAD_BITS);
+			*dst32++ = vga_pal[(c >> 8) & 255] | (vga_pal[c & 255] >> PAL_PAD_BITS);
+			*dst32++ = vga_pal[(c >> 24) & 255] | (vga_pal[(c >> 8) & 255] >> PAL_PAD_BITS);
 		#endif
 	} while (--count > 0);
 }

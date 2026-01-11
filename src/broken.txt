@@ -1,56 +1,28 @@
 Experiments Mesh
 ----------------
 
-Condition: Mostly good, with some wrong colors in few CELs and a crash.
-
 * Software 3D
 	+ Few of it is very broken. But it's mostly software rendering on CEL, both for 8bpp and 16bpp CEL bitmaps.
 	  However one of the modes might have been trying to do gouraud with CEL gradients combined. Or, recently I have been altering the software rendering and may have broke something.
 	  NOTE: This is broken even on 3DO, I was messing up with the software renderer, probably not a problem on the 3DO CEL emulation
 
-* FLI play cinema
-	+ Colors of the FLI animations totally wrong. Not sure if it's still CEL renderer, because FLI loader might be doing things based on endianess, some of it I might have corrected previously.
-	  Also, sometimes I notice as I move close, polygons displaying wrong or extending further, could be overflow with big polygons on my renderer or even on the original 3DO.
-
-
 Experiments Packed
 ------------------
 
-Condition: Very bad, basically anything packed doesn't display or crashes.
-
 * Packed Sprites
-	+ Unpacked works of course. Minor that the polar stars display a full broken circle. Probably my emulation of the atan2 3DO functions uses wrong scale.
-	+ Packed is totally wrong. I thought it would be ok as I worked with CEL packing before and it obviously tries to do something. Maybe unfinished or a very bad bug.
+	+ 4bpp packed is still unfinished
 
 * Packed Rain
-	+ Nothing is displayed
-		EDIT: Now after many changes in other parts it's displaing jank.
+	+ Unpacked now works, packed displays nothing
 
 * Packed Radial
-	+ Crashes in the CEL unpacker
-		EDIT: Now after many changes in other parts it's displaing jank.
+	+ Works now, but why rotating example doesn't sinewave different radiants?
 
+* Packed Wave
+	+ Junk displayed (also crashes on release)
 
 Experiments Sprites
 -------------------
 
-Condition: Some things work, lot's to fix.
-
-* Background Layers
-	+ Seems to work pretty well. Not sure about few colors. But mostly seem ok and blend all layers and SPORT together. Moving around might mean I also emulate correctly the sub window CEL flags and bits.
-	EDIT: Recently I add CCB_BGND which broke them, then fixed it (packed will always see RGB0 as transparent regardless of other flags)
-	However I noticed, wrong pixels sligthly in the edges, and remember those sprites were packed, so unpacker works except with few mistakes that might fail or crash the other tests.
-
-* FLI animation test
-	+ Again displays wrong colors which could be either an issue of CEL renderer or simply my FLI decoder assuming big endianess.
-
 * AMV bits
 	+ Obviously not implemented yet on the CEL renderer. Sprite moves but no antialiased blends around the pixels, just solid. Didn't bother as I rarely use AMV bits in my own projects.
-
-
-
-Experiments Volume
-------------------
-
-* Volume scape
-	+ Software rendered voxel landscape in a cel bitmap. Colors are wrong. Probably the one bit depth I am missing through a lot of parts for some reason.

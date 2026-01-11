@@ -182,6 +182,13 @@ static void initShadedPals()
 	uint16 *pmap = (uint16*)&cmap[HMAP_SIZE];	// palette comes after the bitmap data
 	uint16 *pmapNext = pmap + 256;
 
+	#ifndef BIG_ENDIAN
+		for (i = 0; i < 256; ++i) {
+			const uint16 c = pmap[i];
+			pmap[i] = SHORT_ENDIAN_FLIP(c);
+		}
+	#endif
+
 	for (j=1; j<NUM_SHADE_PALS; ++j) {
 		//int cshade = ((NUM_SHADE_PALS-1 - j) * 256) / (NUM_SHADE_PALS-1);
 		int cshade = 288 - ((256 * lintab[j]) >> FP_LINEAR);
