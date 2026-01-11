@@ -6,13 +6,13 @@ typedef struct CelPoint
 	uint32 colorInfo;
 } CelPoint;
 
+#define DISCARD_PIXEL (1 << 31)
+
 #define MAX_TEXTURE_SIZE 1024
 #define FP_RAST 16
 
 #define ORDER_CW	(1<<0)
 #define ORDER_CCW	(1<<1)
-
-#define SPLAT_PRECISE_TEXEL
 
 
 typedef struct CelRenderInfo
@@ -33,11 +33,11 @@ typedef struct CelRenderInfo
 
 
 
-static uint32 bitmapLine[2*MAX_TEXTURE_SIZE+1];
-static uint8 unpackedSrc[MAX_TEXTURE_SIZE+1];
+static uint32 bitmapLine[2*MAX_TEXTURE_SIZE];
+static uint16 unpackedSrc[MAX_TEXTURE_SIZE];
+static uint32 unpackedPixelExtraInfo[MAX_TEXTURE_SIZE];
 
 static CelPoint celGrid[(MAX_TEXTURE_SIZE+1) * (MAX_TEXTURE_SIZE+1)];
-
 
 
 static int getCelBpp(CCB *cel)
@@ -64,13 +64,11 @@ static int getCelWoffset(CCB* cel)
 }
 
 
-static void pixelProcessorRender(uint16* vramDst, uint32 colorInfo, CelRenderInfo *info)
+static void pixelProcessorRender(uint16* vramDst, uint16 color, CelRenderInfo *info)
 {
-	uint16 color = colorInfo & 65535;
-
 	if (info->opaque) {
 		if (!(color == 0 && info->transparentRGB0)) {
-			*vramDst = (uint16)color;
+			*vramDst = color;
 		}
 	} else {
 		int r1, g1, b1;
@@ -152,6 +150,9 @@ static void pixelProcessorRender(uint16* vramDst, uint32 colorInfo, CelRenderInf
 	}
 }
 
+// It's PACK_PACKED in library headers even if PACK_REPEAT in docs and makes more sense
+#define PACK_REPEAT PACK_PACKED
+
 static void unpackLine(uint8 *src, int bpp)
 {
 	// 2 bits:						6 bits:			data:
@@ -161,6 +162,12 @@ static void unpackLine(uint8 *src, int bpp)
 	// 11: PACK_REPEAT				count+1			pixel bits
 
 	uint8 header, command, count;
+
+	uint32* dstTransparentInfo = unpackedPixelExtraInfo;
+
+	// packed data starts after woffset (1 byte for < 8bpp, 2 for >= 8bpp)
+	int startDataOffset = bpp < 8 ? 1 : 2;
+	src += startDataOffset;
 
 	switch(bpp) {
 		case 4:
@@ -181,14 +188,18 @@ static void unpackLine(uint8 *src, int bpp)
 				if (command==PACK_LITERAL) {
 					do {
 						*dst++ = *src++;
+						*dstTransparentInfo++ = 0;
 					} while (--count != 0);
 				} else {
 					uint8 value = 0;
-					if (command==PACK_PACKED) {
+					uint32 transp = DISCARD_PIXEL;	// if PACK_TRANSPARENT
+					if (command==PACK_REPEAT) {
 						value = *src++;
+						transp = 0;
 					}
 					do {
 						*dst++ = value;
+						*dstTransparentInfo++ = transp;
 					} while (--count != 0);
 				}
 			}
@@ -205,18 +216,19 @@ static void unpackLine(uint8 *src, int bpp)
 
 				if (command==PACK_LITERAL) {
 					do {
-						uint16 value = *src16++;
-						value = SHORT_ENDIAN_FLIP(value);
-						*dst++ = value;
+						*dst++ = *src16++;
+						*dstTransparentInfo++ = 0;
 					} while (--count != 0);
 				} else {
 					uint16 value = 0;
-					if (command==PACK_PACKED) {
+					uint32 transp = DISCARD_PIXEL;	// if PACK_TRANSPARENT
+					if (command==PACK_REPEAT) {
 						value = *src16++;
-						value = SHORT_ENDIAN_FLIP(value);
+						transp = 0;
 					}
 					do {
 						*dst++ = value;
+						*dstTransparentInfo++ = transp;
 					} while (--count != 0);
 				}
 				src = (uint8*)src16;
@@ -248,7 +260,7 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 		}
 	} else {
 		if (packed) {
-			unpackLine((uint8*)src + 2, bpp);
+			unpackLine((uint8*)src, bpp);
 			src = (uint32*)unpackedSrc;
 		}
 
@@ -287,7 +299,7 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 					break;
 				}
 			}
-	} else {
+		} else {
 			if (!pal) return;
 
 			while (wordLength-- > 0) {
@@ -376,6 +388,15 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 				}
 			}
 		}
+
+		// Complete the transparent pixel markings (oof!)
+		if (packed) {
+			uint32* dst = bitmapLine;
+			uint32* dstTransparentInfo = unpackedPixelExtraInfo;
+			do {
+				*dst++ |= *dstTransparentInfo++;
+			} while (--width > 0);
+		}
 	}
 }
 
@@ -387,7 +408,7 @@ static bool pointInsideQuad(int x, int y, CelPoint* p0, CelPoint* p1, CelPoint* 
 			((y - p3->y) * (p0->x - p3->x) - (x - p3->x) * (p0->y - p3->y) >= 0);
 }
 
-static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint32 color, uint16* vramDst, CelRenderInfo *info)
+static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* vramDst, CelRenderInfo *info)
 {
 	int x, y;
 
@@ -418,14 +439,10 @@ static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, u
 
 	for (y = yMin; y < yMax; ++y) {
 		for (x = xMin; x < xMax; ++x) {
-			#ifdef SPLAT_PRECISE_TEXEL
-				if (pointInsideQuad(x,y, p0,p1,p2,p3)) {
-			#endif
-			const int offset = VRAM_OFS(x, y);
-			pixelProcessorRender(vramDst + offset, color, info);
-			#ifdef SPLAT_PRECISE_TEXEL
-				}
-			#endif
+			if (pointInsideQuad(x,y, p0,p1,p2,p3)) {
+				const int offset = VRAM_OFS(x, y);
+				pixelProcessorRender(vramDst + offset, color, info);
+			}
 		}
 	}
 }
@@ -439,26 +456,28 @@ static void renderCelGridTexels(uint16* vramDst, int width, int height, int orde
 
 	for (y=0; y<height; ++y) {
 		for (x = 0; x < width; ++x) {
-			const uint32 color = celGridSrc->colorInfo;
-			if (!(color == 0 && info->transparentRGB0)) {
-				CelPoint* p0 = &celGridSrc[0];
-				CelPoint* p1 = &celGridSrc[1];
-				CelPoint* p2 = &celGridSrc[gridWoffset];
-				CelPoint* p3 = &celGridSrc[gridWoffset + 1];
+			if (!(celGridSrc->colorInfo & DISCARD_PIXEL)) {
+				const uint16 color = celGridSrc->colorInfo & 65535;
+				if (!(color == 0 && info->opaque && info->transparentRGB0)) {
+					CelPoint* p0 = &celGridSrc[0];
+					CelPoint* p1 = &celGridSrc[1];
+					CelPoint* p2 = &celGridSrc[gridWoffset];
+					CelPoint* p3 = &celGridSrc[gridWoffset + 1];
 
-				if (!mariaFill) {
-					if (order & ORDER_CW) {
-						splatTexel(p0, p1, p3, p2, color, vramDst, info);
-					}
-					if (order & ORDER_CCW) {
-						splatTexel(p2, p3, p1, p0, color, vramDst, info);
-					}
-				} else {
-					const int xp = p0->x;
-					const int yp = p0->y;
-					if (xp >= 0 && xp < SCREEN_W && yp >= 0 && yp < SCREEN_H) {
-						const int offset = VRAM_OFS(xp, yp);
-						pixelProcessorRender(vramDst + offset, color, info);
+					if (!mariaFill) {
+						if (order & ORDER_CW) {
+							splatTexel(p0, p1, p3, p2, color, vramDst, info);
+						}
+						if (order & ORDER_CCW) {
+							splatTexel(p2, p3, p1, p0, color, vramDst, info);
+						}
+					} else {
+						const int xp = p0->x;
+						const int yp = p0->y;
+						if (xp >= 0 && xp < SCREEN_W && yp >= 0 && yp < SCREEN_H) {
+							const int offset = VRAM_OFS(xp, yp);
+							pixelProcessorRender(vramDst + offset, color, info);
+						}
 					}
 				}
 			}
@@ -560,6 +579,7 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 		}
 		src += woffset;
 	}
+
 	renderCelGridTexels(vramDst, width, height, order, info);
 }
 
@@ -610,8 +630,12 @@ static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
 				for (x = 0; x < width; ++x) {
 					const int xp = posX + x;
 					if (xp >= 0 && xp < SCREEN_W) {
-						const int offset = (yp >> 1) * SCREEN_W * 2 + (yp & 1) + (xp << 1);
-						pixelProcessorRender(dst + offset, *bitmapLinePtr++, info);
+						const uint32 colorInfo = *bitmapLinePtr++;
+						if (!(colorInfo & DISCARD_PIXEL)) {
+							const uint16 color = colorInfo & 65535;
+							const int offset = VRAM_OFS(xp, yp);
+							pixelProcessorRender(dst + offset, color, info);
+						}
 					}
 				}
 			}
