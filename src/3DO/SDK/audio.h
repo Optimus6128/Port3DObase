@@ -3,7 +3,9 @@
 
 #define MAXDSPAMPLITUDE (0x7FFF)
 
-void OpenAudioFolio();
-void CloseAudioFolio();
+#include "types.h"
+
+Err OpenAudioFolio();
+Err CloseAudioFolio();
 
 #endif

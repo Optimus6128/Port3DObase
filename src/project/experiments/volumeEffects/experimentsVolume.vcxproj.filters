@@ -264,6 +264,9 @@
     <ClInclude Include="main3DO.h">
       <Filter>project</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\3DO\SDK\portfolio.h">
+      <Filter>3DO\SDK</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\common\engine_cel_asm.s">

@@ -1,11 +1,15 @@
 #include "audio.h"
 
-void OpenAudioFolio()
+Err OpenAudioFolio()
 {
 	// Dummy
+
+	return true;
 }
 
-void CloseAudioFolio()
+Err CloseAudioFolio()
 {
 	// Dummy
+
+	return true;
 }

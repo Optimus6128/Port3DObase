@@ -53,6 +53,7 @@
     <ClInclude Include="..\..\3DO\SDK\mem.h" />
     <ClInclude Include="..\..\3DO\SDK\music.h" />
     <ClInclude Include="..\..\3DO\SDK\operamath.h" />
+    <ClInclude Include="..\..\3DO\SDK\portfolio.h" />
     <ClInclude Include="..\..\3DO\SDK\sintab.h" />
     <ClInclude Include="..\..\3DO\SDK\soundfile.h" />
     <ClInclude Include="..\..\3DO\SDK\soundspooler.h" />

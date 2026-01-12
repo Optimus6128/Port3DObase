@@ -3,9 +3,55 @@
 
 #include "hardware.h"
 #include "mem.h"
+#include "string.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+
+static ubyte bppTable[] = { 0, 1, 2, 4, 6, 8, 16, 0 };
+
+/*----------------------------------------------------------------------------
+ * GetCelBitsPerPixel()
+ *	Calc and return the bits-per-pixel of a cel.
+ *--------------------------------------------------------------------------*/
+
+int32 GetCelBitsPerPixel(CCB* cel)
+{
+	return bppTable[CEL_PRE0WORD(cel) & PRE0_BPP_MASK];
+}
+
+/*----------------------------------------------------------------------------
+ * GetCelBytesPerRow()
+ *	Calc and return the bytes-per-row of a cel.
+ *--------------------------------------------------------------------------*/
+
+int32 GetCelBytesPerRow(CCB* cel)
+{
+	int32	woffset;
+	uint32	pre1;
+
+	pre1 = CEL_PRE1WORD(cel);
+
+	if (GetCelBitsPerPixel(cel) < 8) {
+		woffset = (pre1 & PRE1_WOFFSET8_MASK) >> PRE1_WOFFSET8_SHIFT;
+	}
+	else {
+		woffset = (pre1 & PRE1_WOFFSET10_MASK) >> PRE1_WOFFSET10_SHIFT;
+	}
+
+	return ((woffset + PRE1_WOFFSET_PREFETCH) * sizeof(int32));
+
+}
+
+/*----------------------------------------------------------------------------
+ * GetCelDataBufferSize()
+ *	Calc and return the size needed for a cel's data buffer.
+ *--------------------------------------------------------------------------*/
+
+int32 GetCelDataBufferSize(CCB* cel)
+{
+	return (cel->ccb_Height * GetCelBytesPerRow(cel)) + (cel->ccb_Flags & CCB_CCBPRE) ? 0 : 8;
+}
 
 int32 InitCel(CCB* cel, int32 w, int32 h, int32 bpp, int32 options)
 {
@@ -114,7 +160,7 @@ CCB* CreateCel(int32 w, int32 h, int32 bpp, int32 options, void* databuf)
 
 	allocExtra = (options & CREATECEL_CODED) ? sizeof(uint16[32]) : 0L;
 
-	cel = AllocMem(sizeof(CCB), MEMTYPE_ANY);
+	cel = AllocMem(sizeof(CCB) + allocExtra, MEMTYPE_ANY);
 
 	bufferBytes = InitCel(cel, w, h, bpp, options);
 
@@ -288,6 +334,43 @@ static void correctCelEndianess(CCB *cel)
 		}
 		correctPalEndianess(cel->ccb_PLUTPtr, 1 << bpp);
 	}
+}
+
+CCB* CloneCel(CCB* src, int32 options)
+{
+	int32	allocExtra;
+	void* dataBuf;
+	CCB* cel = NULL;
+
+	allocExtra = ((options & CLONECEL_COPY_PLUT) ? sizeof(uint16[32]) : 0L);
+
+	cel = AllocMem(sizeof(CCB) + allocExtra, MEMTYPE_ANY);
+
+	memcpy(cel, src, sizeof(CCB));
+	cel->ccb_Flags |= CCB_LAST;
+	cel->ccb_NextPtr = NULL;
+
+	if ((options & CLONECEL_COPY_PLUT) && src->ccb_PLUTPtr != NULL) {
+		cel->ccb_PLUTPtr = cel + 1;
+		memcpy(cel->ccb_PLUTPtr, src->ccb_PLUTPtr, sizeof(uint16[32]));
+	}
+
+	if (options & CLONECEL_COPY_PIXELS) {
+		allocExtra = GetCelDataBufferSize(src);
+		if ((dataBuf = AllocMem(allocExtra, MEMTYPE_TRACKSIZE | MEMTYPE_CEL)) == NULL) {
+			//DIAGNOSE_SYSERR(NOMEM, ("Can't allocate cel data buffer\n"));
+			goto ERROR_EXIT;
+		}
+		//ModifyMagicCel_(cel, DELETECELMAGIC_CCB_AND_DATA, dataBuf, NULL);
+		cel->ccb_SourcePtr = (CelData*)dataBuf;
+		memcpy(cel->ccb_SourcePtr, src->ccb_SourcePtr, allocExtra);
+	}
+
+	return cel;
+
+ERROR_EXIT:
+
+	return DeleteCel(cel);
 }
 
 CCB* LoadCel(char* filename, uint32 memTypeBits)
