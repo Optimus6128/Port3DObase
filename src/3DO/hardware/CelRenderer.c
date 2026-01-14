@@ -37,6 +37,8 @@ static uint32 bitmapLine[2*MAX_TEXTURE_SIZE];
 static uint16 unpackedSrc[MAX_TEXTURE_SIZE];
 static uint32 unpackedPixelExtraInfo[MAX_TEXTURE_SIZE];
 
+static int bitsUnpackPos;	// global to keep track when unpacking 6bpp or less (where bits might be packed and not align with byte)
+
 static CelPoint celGrid[(MAX_TEXTURE_SIZE+1) * (MAX_TEXTURE_SIZE+1)];
 
 
@@ -153,7 +155,32 @@ static void pixelProcessorRender(uint16* vramDst, uint16 color, CelRenderInfo *i
 // It's PACK_PACKED in library headers even if PACK_REPEAT in docs and makes more sense
 #define PACK_REPEAT PACK_PACKED
 
-static void unpackLine(uint8 *src, int bpp)
+// Necessary only for headers and data that might be split in the middle of two bytes (for 6bpp or less, as bit data and headers might be all packed, only last packet in a line must be word completed by zeros)
+static uint8 readPackedByteValue(uint8 *src)
+{
+	const int bitShift = bitsUnpackPos & 7;
+	src = &src[bitsUnpackPos >> 3];
+	bitsUnpackPos += 8;
+
+	if (bitShift == 0) {
+		return *src;
+	} else {
+		uint8 val0 = *src;
+		uint8 val1 = *(src+1);
+
+		return (val0 << bitShift) | (val1 >> (8 - bitShift));
+	}
+}
+
+static uint8 readPackedNibbleValue(uint8* src)	// 4bpp for now (I assume the way packed data are stored, a 4bpp might never cross to the next bpp, exception might be the 6bpp)
+{
+	const int bitShift = bitsUnpackPos & 7;
+	bitsUnpackPos += 4;
+
+	return (*src << bitShift) >> 4;
+}
+
+static void unpackLine(uint8 *src, int width, int bpp)
 {
 	// 2 bits:						6 bits:			data:
 	// 00: PACK_EOL					nothing			nothing
@@ -172,8 +199,49 @@ static void unpackLine(uint8 *src, int bpp)
 	switch(bpp) {
 		case 4:
 		{
-			while(header = *src++, command = header >> 6, command) {
+			uint8* dst = (uint8*)unpackedSrc;
+			int dstBitsPos = 0;
+
+			bitsUnpackPos = 0;
+			while(width > 0) {
+				header = readPackedByteValue(src);
+				command = header >> 6;
+				if (command == PACK_EOL) break;
+
 				count = (header & 63) + 1;
+				width -= count;
+
+				if (command == PACK_LITERAL) {
+					do {
+						uint8* dstPtr = &dst[dstBitsPos >> 3];
+						if ((dstBitsPos & 7) == 0) {
+							*dstPtr = readPackedNibbleValue(src);
+						} else {
+							*dstPtr |= readPackedNibbleValue(src);
+						}
+						dstBitsPos += 4;
+						*dstTransparentInfo++ = 0;
+					} while (--count != 0);
+				}
+				else {
+					uint8 value = 0;
+					uint32 transp = DISCARD_PIXEL;	// if PACK_TRANSPARENT
+					if (command == PACK_REPEAT) {
+						value = readPackedNibbleValue(src);
+						transp = 0;
+					}
+					do {
+						uint8* dstPtr = &dst[dstBitsPos >> 3];
+						if ((dstBitsPos & 7) == 0) {
+							*dstPtr = readPackedNibbleValue(src);
+						}
+						else {
+							*dstPtr |= readPackedNibbleValue(src);
+						}
+						dstBitsPos += 4;
+						*dstTransparentInfo++ = transp;
+					} while (--count != 0);
+				}
 			}
 			break;
 		}
@@ -182,8 +250,13 @@ static void unpackLine(uint8 *src, int bpp)
 		{
 			uint8* dst = (uint8*)unpackedSrc;
 
-			while(header = *src++, command = header >> 6, command) {
+			while (width > 0) {
+				header = *src++;
+				command = header >> 6;
+				if (command == PACK_EOL) break;
+
 				count = (header & 63) + 1;
+				width -= count;
 
 				if (command==PACK_LITERAL) {
 					do {
@@ -210,9 +283,17 @@ static void unpackLine(uint8 *src, int bpp)
 		{
 			uint16* dst = (uint16*)unpackedSrc;
 
-			while(header = *src++, command = header >> 6, command) {
-				uint16 *src16 = (uint16*)src;
+			while (width > 0) {
+				uint16* src16;
+
+				header = *src++;
+				command = header >> 6;
+				if (command == PACK_EOL) break;
+
+				src16 = (uint16*)src;
+
 				count = (header & 63) + 1;
+				width -= count;
 
 				if (command==PACK_LITERAL) {
 					do {
@@ -260,7 +341,7 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 		}
 	} else {
 		if (packed) {
-			unpackLine((uint8*)src, bpp);
+			unpackLine((uint8*)src, width, bpp);
 			src = (uint32*)unpackedSrc;
 		}
 
