@@ -172,14 +172,6 @@ static uint8 readPackedByteValue(uint8 *src)
 	}
 }
 
-static uint8 readPackedNibbleValue(uint8* src)	// 4bpp for now (I assume the way packed data are stored, a 4bpp might never cross to the next bpp, exception might be the 6bpp)
-{
-	const int bitShift = bitsUnpackPos & 7;
-	bitsUnpackPos += 4;
-
-	return (*src << bitShift) >> 4;
-}
-
 static void unpackLine(uint8 *src, int width, int bpp)
 {
 	// 2 bits:						6 bits:			data:
@@ -214,11 +206,15 @@ static void unpackLine(uint8 *src, int width, int bpp)
 				if (command == PACK_LITERAL) {
 					do {
 						uint8* dstPtr = &dst[dstBitsPos >> 3];
+						const int bitShift = bitsUnpackPos & 7;
+						const uint8 val = src[bitsUnpackPos >> 3] & (15 << (4 - bitShift));
+
 						if ((dstBitsPos & 7) == 0) {
-							*dstPtr = readPackedNibbleValue(src);
+							*dstPtr = val;
 						} else {
-							*dstPtr |= readPackedNibbleValue(src);
+							*dstPtr |= val;
 						}
+						bitsUnpackPos += 4;
 						dstBitsPos += 4;
 						*dstTransparentInfo++ = 0;
 					} while (--count != 0);
@@ -227,16 +223,17 @@ static void unpackLine(uint8 *src, int width, int bpp)
 					uint8 value = 0;
 					uint32 transp = DISCARD_PIXEL;	// if PACK_TRANSPARENT
 					if (command == PACK_REPEAT) {
-						value = readPackedNibbleValue(src);
+						const int bitShift = bitsUnpackPos & 7;
+						value = ((src[bitsUnpackPos >> 3] << bitShift) >> 4) & 15;
 						transp = 0;
+						bitsUnpackPos += 4;
 					}
 					do {
 						uint8* dstPtr = &dst[dstBitsPos >> 3];
 						if ((dstBitsPos & 7) == 0) {
-							*dstPtr = readPackedNibbleValue(src);
-						}
-						else {
-							*dstPtr |= readPackedNibbleValue(src);
+							*dstPtr = value << 4;
+						} else {
+							*dstPtr |= value;
 						}
 						dstBitsPos += 4;
 						*dstTransparentInfo++ = transp;
