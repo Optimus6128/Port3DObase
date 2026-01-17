@@ -32,7 +32,6 @@ typedef struct CelRenderInfo
 } CelRenderInfo;
 
 
-
 static uint32 bitmapLine[2*MAX_TEXTURE_SIZE];
 static uint16 unpackedSrc[MAX_TEXTURE_SIZE];
 static uint32 unpackedPixelExtraInfo[MAX_TEXTURE_SIZE];
@@ -86,8 +85,7 @@ static void pixelProcessorRender(uint16* vramDst, uint16 color, CelRenderInfo *i
 
 		if (info->source1 == PPMPC_1S_PDC) {
 			src1 = color;
-		}
-		else {
+		} else {
 			src1 = *vramDst;
 		}
 
@@ -107,8 +105,7 @@ static void pixelProcessorRender(uint16* vramDst, uint16 color, CelRenderInfo *i
 				r1 = (r1 + avBits) >> dv2;
 				g1 = (g1 + avBits) >> dv2;
 				b1 = (b1 + avBits) >> dv2;
-			}
-			else {
+				} else {
 				r1 = (r1 ^ avBits) >> dv2;
 				g1 = (g1 ^ avBits) >> dv2;
 				b1 = (b1 ^ avBits) >> dv2;
@@ -134,8 +131,7 @@ static void pixelProcessorRender(uint16* vramDst, uint16 color, CelRenderInfo *i
 				r1 = (r1 + r2) >> dv2;
 				g1 = (g1 + g2) >> dv2;
 				b1 = (b1 + b2) >> dv2;
-			}
-			else {
+			} else {
 				r1 = (r1 ^ r2) >> dv2;
 				g1 = (g1 ^ g2) >> dv2;
 				b1 = (b1 ^ b2) >> dv2;
@@ -321,9 +317,8 @@ static void unpackLine(uint8 *src, int width, int bpp)
 
 #define RRRGGGBB_TO_C16(c) ((((c) >> 5) << 12) | ((((c) >> 2) & 7) << 7) | (((c) & 3) << 3))
 
-static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, bool packed, bool lrform)
+static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, bool packed, bool lrform, uint32* dst)
 {
-	uint32* dst = bitmapLine;
 	int wordLength = (width * bpp + 31) >> 5;
 
 	if (lrform) {
@@ -341,7 +336,6 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 			unpackLine((uint8*)src, width, bpp);
 			src = (uint32*)unpackedSrc;
 		}
-
 		if (raw) {
 			while (wordLength-- > 0) {
 				const uint32 c = *src++;
@@ -626,8 +620,7 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	posY = cel->ccb_YPos;
 	for (y = 0; y < height+1; ++y) {
 		uint32* bitmapLinePtr = bitmapLine;
-
-		if (y < height) decodeLine(width, bpp, src, pal, raw, packed, lrform);
+		if (y < height) decodeLine(width, bpp, src, pal, raw, packed, lrform, bitmapLine);
 
 		if (packed) {
 			woffset = getWoffsetFromPackedData(src, bpp);
@@ -661,7 +654,7 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	renderCelGridTexels(vramDst, width, height, order, info);
 }
 
-static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
+static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 {
 	int x, y, i, n = 1;
 
@@ -696,7 +689,7 @@ static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
 	for (y = 0; y < height; y+=n) {
 		uint32* bitmapLinePtr = bitmapLine;
 
-		decodeLine(width, bpp, src, pal, raw, packed, lrform);
+		decodeLine(width, bpp, src, pal, raw, packed, lrform, bitmapLine);
 
 		if (packed) {
 			woffset = getWoffsetFromPackedData(src, bpp);
@@ -712,7 +705,7 @@ static void renderCelSprite(CCB* cel, uint16* dst, CelRenderInfo *info)
 						if (!(colorInfo & DISCARD_PIXEL)) {
 							const uint16 color = colorInfo & 65535;
 							const int offset = VRAM_OFS(xp, yp);
-							pixelProcessorRender(dst + offset, color, info);
+							pixelProcessorRender(vramDst + offset, color, info);
 						}
 					}
 				}
