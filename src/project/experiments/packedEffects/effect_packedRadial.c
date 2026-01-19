@@ -142,7 +142,7 @@ static void initRadialSprites()
 		for (x=0; x<width; ++x) {
 			const int xc = x - width / 2;
 
-			int r = isqrt(xc * xc + yc * yc);
+			int r = isqrtCalc(xc * xc + yc * yc);
 			const unsigned char a = (unsigned char)(Atan2F16(xc,yc) >> 16);
 
 			if (r <= 0) r = 1;

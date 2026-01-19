@@ -63,6 +63,7 @@ extern int *isin;
 extern int *recZ;
 
 int isqrt(int x);
+int isqrtCalc(int x);
 
 int getRand(int from, int to);
 int getShr(unsigned int n);

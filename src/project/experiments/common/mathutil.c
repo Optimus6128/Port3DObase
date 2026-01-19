@@ -10,7 +10,7 @@ int *recZ;
 static int sqrtLUT[SQRT_LUT_SIZE];
 
 
-static int isqrtCalc(int x) {
+int isqrtCalc(int x) {
     long long int q = 1;	// very high numbers over ((1<<30)-1) will freeze in while if this wasn't 64bit
 	int r = 0;
     while (q <= x) {
