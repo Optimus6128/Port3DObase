@@ -323,7 +323,9 @@ static void correctCelEndianess(CCB *cel)
 	bpp = bppTable[cel->ccb_PRE0 & PRE0_BPP_MASK];
 	if (bpp > 8) {
 		if (!(cel->ccb_Flags & CCB_PACKED)) {
-			correctCelDataEndianess16bpp((uint16*)cel->ccb_SourcePtr, cel->ccb_Width * cel->ccb_Height);
+			int pixelWoffset = cel->ccb_Width;
+			if (pixelWoffset < 4) pixelWoffset = 4;	// if width is too small to be less that 8bytes (2 DWORDS)
+			correctCelDataEndianess16bpp((uint16*)cel->ccb_SourcePtr, pixelWoffset * cel->ccb_Height);
 		}
 		return;
 	}

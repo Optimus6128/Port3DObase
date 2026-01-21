@@ -15,6 +15,7 @@
 
 #define VRAM_OFS(x,y) ((y) >> 1) * SCREEN_W * 2 + ((y) & 1) + ((x) << 1)
 
+void initCelRenderer();
 void renderCel(CCB* cel, uint16* dst);
 
 #endif

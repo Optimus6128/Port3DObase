@@ -1,6 +1,8 @@
 #include <SDL2/SDL.h>
 #undef main
 
+#include "hardware/CelRenderer.h"
+
 #include "main.h"
 #include "tinyFPS.h"
 
@@ -316,6 +318,8 @@ int main()
 	screenInit(SDL_SCREEN_WIDTH, SDL_SCREEN_HEIGHT);
 
 	initFpsFonts();
+
+	initCelRenderer();
 
 	main3DO();
 

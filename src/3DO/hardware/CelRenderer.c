@@ -1,5 +1,7 @@
 #include "CelRenderer.h"
 
+#include <string.h>
+
 typedef struct CelPoint
 {
 	int x, y;
@@ -36,6 +38,9 @@ static uint32 bitmapLine[2*MAX_TEXTURE_SIZE];
 static uint16 unpackedSrc[MAX_TEXTURE_SIZE];
 static uint32 unpackedPixelExtraInfo[MAX_TEXTURE_SIZE];
 
+static uint32 stencilBuffer[SCREEN_W * SCREEN_H];
+static uint32 stencilIndex = 0;
+
 static int bitsUnpackPos;	// global to keep track when unpacking 6bpp or less (where bits might be packed and not align with byte)
 
 static CelPoint celGrid[(MAX_TEXTURE_SIZE+1) * (MAX_TEXTURE_SIZE+1)];
@@ -65,13 +70,13 @@ static int getCelWoffset(CCB* cel)
 }
 
 
-static void pixelProcessorRender(uint16* vramDst, uint16 color, CelRenderInfo *info)
+static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 color, CelRenderInfo *info)
 {
 	if (info->opaque) {
 		if (!(color == 0 && info->transparentRGB0)) {
 			*vramDst = color;
 		}
-	} else {
+	} else if (!(info->needsFrameBuffer && *stencilDst == stencilIndex)) {	// if it would blend with background but for this CEL a blended pixel already was written, don't overblend (stencilIndex will be increasing per CEL, so that for a single CEL you won't overwrite/blend pixel twice)
 		int r1, g1, b1;
 		int r2, g2, b2;
 		uint16 src1, src2;
@@ -144,6 +149,7 @@ static void pixelProcessorRender(uint16* vramDst, uint16 color, CelRenderInfo *i
 		color = (r1 << 10) | (g1 << 5) | b1;
 		if (!(color == 0 && info->transparentRGB0)) {
 			*vramDst = color;
+			if (info->needsFrameBuffer) *stencilDst = stencilIndex;	// only if blend with background will happen mark pixel to not overwrite twice for the same CEL
 		}
 	}
 }
@@ -513,7 +519,7 @@ static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, u
 		for (x = xMin; x < xMax; ++x) {
 			if (pointInsideQuad(x,y, p0,p1,p2,p3)) {
 				const int offset = VRAM_OFS(x, y);
-				pixelProcessorRender(vramDst + offset, color, info);
+				pixelProcessorRender(vramDst + offset, stencilBuffer + offset, color, info);
 			}
 		}
 	}
@@ -529,7 +535,7 @@ static void renderCelGridTexels(uint16* vramDst, int width, int height, int orde
 	for (y=0; y<height; ++y) {
 		for (x = 0; x < width; ++x) {
 			if (!(celGridSrc->colorInfo & DISCARD_PIXEL)) {
-				const uint16 color = celGridSrc->colorInfo & 65535;
+				uint16 color = celGridSrc->colorInfo & 65535;
 				if (!(color == 0 && info->opaque && info->transparentRGB0)) {
 					CelPoint* p0 = &celGridSrc[0];
 					CelPoint* p1 = &celGridSrc[1];
@@ -548,7 +554,7 @@ static void renderCelGridTexels(uint16* vramDst, int width, int height, int orde
 						const int yp = p0->y;
 						if (xp >= 0 && xp < SCREEN_W && yp >= 0 && yp < SCREEN_H) {
 							const int offset = VRAM_OFS(xp, yp);
-							pixelProcessorRender(vramDst + offset, color, info);
+							pixelProcessorRender(vramDst + offset, stencilBuffer + offset, color, info);
 						}
 					}
 				}
@@ -701,15 +707,16 @@ static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 				for (x = 0; x < width; ++x) {
 					const int xp = posX + x;
 					if (xp >= 0 && xp < SCREEN_W) {
-						const uint32 colorInfo = *bitmapLinePtr++;
+						const uint32 colorInfo = bitmapLinePtr[x];
 						if (!(colorInfo & DISCARD_PIXEL)) {
 							const uint16 color = colorInfo & 65535;
 							const int offset = VRAM_OFS(xp, yp);
-							pixelProcessorRender(vramDst + offset, color, info);
+							pixelProcessorRender(vramDst + offset, stencilBuffer + offset, color, info);
 						}
 					}
 				}
 			}
+			bitmapLinePtr += width;
 		}
 		src += woffset;
 	}
@@ -771,9 +778,19 @@ static CelRenderInfo* setupCelRenderInfo(CCB* cel)
 	return info;
 }
 
+void initCelRenderer()
+{
+	memset(stencilBuffer, 0, sizeof(stencilBuffer));
+}
+
 void renderCel(CCB* cel, uint16* dst)
 {
 	CelRenderInfo *info = setupCelRenderInfo(cel);
+
+	// Prepare next stencilIndex only for CELs that might blend with background
+	if (info->needsFrameBuffer) {
+		stencilIndex++;
+	}
 
 	if (cel->ccb_HDY == 0 && cel->ccb_VDX == 0 && cel->ccb_HDDX == 0 && cel->ccb_HDDY == 0 && cel->ccb_HDX == (1 << 20) && cel->ccb_VDY == (1 << 16)) {
 		renderCelSprite(cel, dst, info);

@@ -9,20 +9,17 @@ Experiments Mesh
 Experiments Packed
 ------------------
 
-* Packed Sprites
-	+ 4bpp packed is still unfinished
-
 * Packed Rain
 	+ Unpacked now works, packed displays nothing
-
-* Packed Radial
-	+ Works now, but why rotating example doesn't sinewave different radiants?
 
 * Packed Wave
 	+ Junk displayed (also crashes on release)
 
 Experiments Sprites
 -------------------
+
+* Paralax Tests
+	+ grass is still broken (packed texture and some offset?)
 
 * AMV bits
 	+ Obviously not implemented yet on the CEL renderer. Sprite moves but no antialiased blends around the pixels, just solid. Didn't bother as I rarely use AMV bits in my own projects.
