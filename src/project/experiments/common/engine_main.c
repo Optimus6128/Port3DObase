@@ -671,7 +671,7 @@ static void initEngineVertexTables()
 	zOrderList = (zOrderListBucket*)AllocMem(Z_ORDER_SIZE * sizeof(zOrderListBucket), MEMTYPE_ANY);
 }
 
-void initEngine(bool usesSoftEngine)
+void initEngine(bool usesSoftEngine, bool usesSemisoftGouraud)
 {
 	initEngineLUTs();
 	initEngineVertexTables();
@@ -686,5 +686,5 @@ void initEngine(bool usesSoftEngine)
 
 	memset(zOrderList, 0, sizeof(zOrderListBucket) * Z_ORDER_SIZE);
 
-	if (usesSoftEngine) initEngineSoft();
+	if (usesSoftEngine) initEngineSoft(usesSemisoftGouraud);
 }

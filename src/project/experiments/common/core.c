@@ -93,6 +93,7 @@ void coreInit(void(*initFunc)(), uint32 flags)
 {
 	bool mustInitEngine3D = (flags & CORE_INIT_3D_ENGINE) != 0;
 	bool mustInitEngine3D_soft = (flags & CORE_INIT_3D_ENGINE_SOFT) != 0;
+	bool mustInitSemisoftGouraud = (flags & CORE_INIT_SEMISOFT_GOURAUD) != 0;
 	
 	initSystem();
 	initGraphicsOptions(flags);
@@ -101,7 +102,7 @@ void coreInit(void(*initFunc)(), uint32 flags)
 	initMenu();
 
 	if (mustInitEngine3D || mustInitEngine3D_soft) {
-		initEngine(mustInitEngine3D_soft);
+		initEngine(mustInitEngine3D_soft, mustInitSemisoftGouraud);
 	}
 
 	if (initFunc) {

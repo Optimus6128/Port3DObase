@@ -16,8 +16,6 @@
 
 //#define ASM_VRAMSET
 
-#define OLD_TRIANGLE_DRAW
-
 #define SOFT_BUFF_MAX_SIZE (2 * SCREEN_WIDTH * SCREEN_HEIGHT)
 
 #define DIV_TAB_SIZE 4096
@@ -33,7 +31,7 @@ static CCB **currentScanlineCel8;
 #define GRADIENT_GROUP_SIZE (GRADIENT_SHADES * GRADIENT_LENGTH)
 static unsigned char *gourGradBmps;
 
-static bool fastGouraud = false;
+static bool semisoftGouraud = false;
 
 typedef struct Edge
 {
@@ -82,8 +80,6 @@ static int minX, maxX, minY, maxY;
 
 static void(*fillEdges)(int y0, int y1);
 static void(*prepareEdgeList) (ScreenElement *e0, ScreenElement *e1);
-
-static void(*fillTriangleOld) (int y0, int y1, ScreenElement *e0, ScreenElement *e1, Gradients *slope1, Gradients *slope2);
 
 
 static void bindGradient(uint16 *gradient)
@@ -286,6 +282,46 @@ static void calculateTriangleGradients(ScreenElement *e0, ScreenElement *e1, Scr
 			grads.du = (((u1 - u2) * (y0 - y2) - (u0 - u2) * (y1 - y2)) << FP_BASE) / dd;
 			grads.dv = (((v1 - v2) * (y0 - y2) - (v0 - v2) * (y1 - y2)) << FP_BASE) / dd;
 		}
+	}
+}
+
+static void prepareEdgeListSemiGouraud(ScreenElement* e0, ScreenElement* e1)
+{
+	Edge* edgeListToWrite;
+
+	//if (e0->y == e1->y) return;
+
+	// Assumes CCW
+	if (e0->y < e1->y) {
+		edgeListToWrite = leftEdge;
+	} else {
+		ScreenElement* eTemp = e0; e0 = e1; e1 = eTemp;
+		edgeListToWrite = rightEdge;
+	}
+
+	{
+		int32* dvt = &divTab[DIV_TAB_SIZE / 2];
+
+		const int x0 = e0->x; int y0 = e0->y; int c0 = e0->c;
+		const int x1 = e1->x; int y1 = e1->y; int c1 = e1->c;
+
+		int dy = y1 - y0;
+		const int repDiv = dvt[dy];
+		const int dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+		const int dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+
+		int fx = INT_TO_FIXED(x0, FP_BASE);
+		int fc = INT_TO_FIXED(c0, FP_BASE);
+
+		edgeListToWrite = &edgeListToWrite[y0];
+		while (dy-- > 0) {
+			int x = FIXED_TO_INT(fx, FP_BASE);
+			edgeListToWrite->x = x;
+			edgeListToWrite->c = fc;
+			++edgeListToWrite;
+			fx += dx;
+			fc += dc;
+		};
 	}
 }
 
@@ -504,12 +540,12 @@ static void fillGouraudEdges8_SemiSoft(int y0, int y1)
 
 		cel->ccb_HDX = (length<<20) / GRADIENT_LENGTH;
 		
-		cel->ccb_SourcePtr = (CelData*)&gourGradBmps[cl*GRADIENT_GROUP_SIZE + cr*GRADIENT_LENGTH];
+		cel->ccb_SourcePtr = (CelData*)&gourGradBmps[cl * GRADIENT_GROUP_SIZE + cr * GRADIENT_LENGTH];
 
 		++le;
 		++re;
 	}
-	firstCel->ccb_PLUTPtr = (void*)activeGradient;
+	firstCel->ccb_PLUTPtr = (void*)gouraudColorShades;
 	firstCel->ccb_Flags |= CCB_LDPLUT;
 }
 
@@ -1025,206 +1061,6 @@ static bool shouldSkipTriangle(ScreenElement *e0, ScreenElement *e1, ScreenEleme
     return ((outcode1 & outcode2 & outcode3)!=0);
 }
 
-
-// 63, 32, 27, 20
-// 68, 37, 26, 21
-
-
-static void fillTriangleOldGouraud8(int y0, int y1, ScreenElement *e0, ScreenElement *e1, Gradients *slope1, Gradients *slope2)
-{
-	int count = y1 - y0;
-
-	const int stride8 = softBuffer.stride;
-	unsigned char *vram8 = (unsigned char*)softBufferCurrentPtr + y0 * stride8;
-	uint32 *dst32;
-
-	int x01 = e0->x;
-	int x02 = e1->x;
-	int c01 = e0->c;
-
-	const int dx01 = slope1->dx;
-	const int dx02 = slope2->dx;
-	const int dc01 = slope1->dc;
-
-	const int dc = grads.dc;
-
-	while(count-- > 0) {
-		const int sx1 = x01 >> FP_BASE;
-		const int sx2 = x02 >> FP_BASE;
-
-		int xlp = sx1 & 3;
-		int sc1 = c01;
-		int length = sx2 - sx1;
-
-		unsigned char *dst = vram8 + sx1;
-
-		if (xlp) {
-			xlp = 4 - xlp;
-			while (xlp-- > 0 && length-- > 0) {
-				*dst++ = (unsigned char)FIXED_TO_INT(sc1, FP_BASE);
-				sc1+=dc;
-			}
-		}
-
-		dst32 = (uint32*)dst;
-		while(length >= 4) {
-			int c0,c1,c2,c3;
-
-			c0 = FIXED_TO_INT(sc1, FP_BASE);
-			sc1+=dc;
-			c1 = FIXED_TO_INT(sc1, FP_BASE);
-			sc1+=dc;
-			c2 = FIXED_TO_INT(sc1, FP_BASE);
-			sc1+=dc;
-			c3 = FIXED_TO_INT(sc1, FP_BASE);
-			sc1+=dc;
-
-			#ifdef BIG_ENDIAN
-				*dst32++ = (c0 << 24) | (c1 << 16) | (c2 << 8) | c3;
-			#else
-				*dst32++ = (c3 << 24) | (c2 << 16) | (c1 << 8) | c0;
-			#endif
-			length-=4;
-		}
-
-		dst = (unsigned char*)dst32;
-		while (length-- > 0) {
-			*dst++ = (unsigned char)(sc1>>FP_BASE);
-			sc1+=dc;
-		}
-
-		x01+=dx01;
-		x02+=dx02;
-		c01+=dc01;
-
-		vram8 += stride8;
-	}
-}
-
-static void fillTriangleOldGouraud16(int y0, int y1, ScreenElement *e0, ScreenElement *e1, Gradients *slope1, Gradients *slope2)
-{
-	const int stride16 = softBuffer.stride >> 1;
-	uint16 *vram16 = (uint16*)softBufferCurrentPtr + y0 * stride16;
-	uint32 *dst32;
-
-	int count = y1 - y0;
-
-	int x01 = e0->x;
-	int x02 = e1->x;
-	int c01 = e0->c;
-
-	const int dx01 = slope1->dx;
-	const int dx02 = slope2->dx;
-	const int dc01 = slope1->dc;
-
-	const int dc = grads.dc;
-
-	while(count-- > 0) {
-		const int sx1 = x01 >> FP_BASE;
-		const int sx2 = x02 >> FP_BASE;
-
-		int sc1 = c01;
-		int length = sx2 - sx1;
-
-		uint16 *dst = vram16 + sx1;
-
-		if (length>0){
-			if (sx1 & 1) {
-				*dst++ = activeGradient[FIXED_TO_INT(sc1, FP_BASE)];
-				sc1+=dc;
-				length--;
-			}
-		}
-
-		dst32 = (uint32*)dst;
-		while(length >= 2) {
-			int c0,c1;
-
-			c0 = FIXED_TO_INT(sc1, FP_BASE);
-			sc1+=dc;
-			c1 = FIXED_TO_INT(sc1, FP_BASE);
-			sc1+=dc;
-
-			#ifdef BIG_ENDIAN
-				*dst32++ = (activeGradient[c0] << 16) | activeGradient[c1];
-			#else
-				*dst32++ = (activeGradient[c1] << 16) | activeGradient[c0];
-			#endif
-			length -= 2;
-		}
-
-		dst = (uint16*)dst32;
-		if (length & 1) {
-			*dst++ = activeGradient[FIXED_TO_INT(sc1, FP_BASE)];
-			sc1+=dc;
-		}
-
-		x01+=dx01;
-		x02+=dx02;
-		c01+=dc01;
-
-		vram16 += stride16;
-	}
-}
-
-static void drawTriangleOld(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2)
-{
-	static Gradients slope01, slope12, slope02;
-	static ScreenElement se0, se1, se2, se1b;
-
-	ScreenElement *temp;
-	int32 *dvt = &divTab[DIV_TAB_SIZE/2];
-
-	if (shouldSkipTriangle(e0, e1, e2)) return;
-
-	if (e1->y < e0->y) {
-		temp = e0; e0 = e1; e1 = temp;
-	}
-	if (e2->y < e0->y) {
-		temp = e0; e0 = e2; e2 = temp;
-	}
-	if (e2->y < e1->y) {
-		temp = e1; e1 = e2; e2 = temp;
-	}
-
-	se0.x = e0->x << FP_BASE; se0.c = e0->c << FP_BASE;
-	se1.x = e1->x << FP_BASE; se1.c = e1->c << FP_BASE;
-	se2.x = e2->x << FP_BASE; se2.c = e2->c << FP_BASE;
-
-	slope01.dx = ((se1.x - se0.x) * dvt[e1->y - e0->y]) >> DIV_TAB_SHIFT;
-	slope12.dx = ((se2.x - se1.x) * dvt[e2->y - e1->y]) >> DIV_TAB_SHIFT;
-	slope02.dx = ((se2.x - se0.x) * dvt[e2->y - e0->y]) >> DIV_TAB_SHIFT;
-	se1b.x = se0.x + (e1->y - e0->y) * slope02.dx;
-
-	if (renderSoftMethod & RENDER_SOFT_METHOD_GOURAUD) {
-		slope01.dc = ((se1.c - se0.c) * dvt[e1->y - e0->y]) >> DIV_TAB_SHIFT;
-		slope12.dc = ((se2.c - se1.c) * dvt[e2->y - e1->y]) >> DIV_TAB_SHIFT;
-		slope02.dc = ((se2.c - se0.c) * dvt[e2->y - e0->y]) >> DIV_TAB_SHIFT;
-		se1b.c = se0.c + (e1->y - e0->y) * slope02.dc;
-	}
-
-	if (renderSoftMethod & RENDER_SOFT_METHOD_ENVMAP) {
-		slope01.du = ((se1.u - se0.u) * dvt[e1->y - e0->y]) >> DIV_TAB_SHIFT;
-		slope01.dv = ((se1.v - se0.v) * dvt[e1->y - e0->y]) >> DIV_TAB_SHIFT;
-		slope12.du = ((se2.u - se1.u) * dvt[e2->y - e1->y]) >> DIV_TAB_SHIFT;
-		slope12.dv = ((se2.v - se1.v) * dvt[e2->y - e1->y]) >> DIV_TAB_SHIFT;
-		slope02.du = ((se2.u - se0.u) * dvt[e2->y - e0->y]) >> DIV_TAB_SHIFT;
-		slope02.dv = ((se2.v - se0.v) * dvt[e2->y - e0->y]) >> DIV_TAB_SHIFT;
-		se1b.u = se0.u + (e1->y - e0->y) * slope02.du;
-		se1b.v = se0.v + (e1->y - e0->y) * slope02.dv;
-	}
-
-	calculateTriangleGradients(e0, e1, e2);
-
-	if (se1.x <= se1b.x) {
-		fillTriangleOld(e0->y, e1->y, &se0, &se0, &slope01, &slope02);
-		fillTriangleOld(e1->y, e2->y, &se1, &se1b, &slope12, &slope02);
-	} else {
-		fillTriangleOld(e0->y, e1->y, &se0, &se0, &slope02, &slope01);
-		fillTriangleOld(e1->y, e2->y, &se1b, &se1, &slope02, &slope12);
-	}
-}
-
 static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2)
 {
 	int y0, y1;
@@ -1313,16 +1149,16 @@ static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements)
 	updateSoftBufferVariables(minX, minY, maxX - minX + 1, maxY - minY + 1, ms);
 }
 
-static bool mustUseFastGouraud(Mesh *ms)
+static bool mustUseSemisoftGouraud(Mesh *ms)
 {
-	return fastGouraud && (renderSoftMethod == RENDER_SOFT_METHOD_GOURAUD) && (ms->renderType & MESH_OPTION_RENDER_SOFT8);
+	return semisoftGouraud && (renderSoftMethod == RENDER_SOFT_METHOD_GOURAUD) && (ms->renderType & MESH_OPTION_RENDER_SOFT8);
 }
 
 static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 {
-	const bool useFastGouraud = mustUseFastGouraud(ms);
+	const bool useSemisoftGouraud = mustUseSemisoftGouraud(ms);
 
-	if (useFastGouraud) {
+	if (useSemisoftGouraud) {
 		currentScanlineCel8 = scanlineCel8;
 	} else {
 		prepareAndPositionSoftBuffer(ms, elements);
@@ -1331,16 +1167,15 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 	switch(renderSoftMethod) {
 		case RENDER_SOFT_METHOD_GOURAUD:
 		{
-			prepareEdgeList = prepareEdgeListGouraud;
-			if (useFastGouraud) {
+			if (useSemisoftGouraud) {
+				prepareEdgeList = prepareEdgeListSemiGouraud;
 				fillEdges = fillGouraudEdges8_SemiSoft;
 			} else {
+				prepareEdgeList = prepareEdgeListGouraud;
 				if (ms->renderType & MESH_OPTION_RENDER_SOFT8) {
 					fillEdges = fillGouraudEdges8;
-					fillTriangleOld = fillTriangleOldGouraud8;
 				} else {
 					fillEdges = fillGouraudEdges16;
-					fillTriangleOld = fillTriangleOldGouraud16;
 				}
 			}
 		}
@@ -1351,10 +1186,8 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 			prepareEdgeList = prepareEdgeListEnvmap;
 			if (ms->renderType & MESH_OPTION_RENDER_SOFT8) {
 				fillEdges = fillEnvmapEdges8;
-				fillTriangleOld = fillTriangleOldGouraud8;
 			} else {
 				fillEdges = fillEnvmapEdges16;
-				fillTriangleOld = fillTriangleOldGouraud16;
 			}
 		}
 		break;
@@ -1364,10 +1197,8 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 			prepareEdgeList = prepareEdgeListGouraudEnvmap;
 			if (ms->renderType & MESH_OPTION_RENDER_SOFT8) {
 				fillEdges = fillGouraudEnvmapEdges8;
-				fillTriangleOld = fillTriangleOldGouraud8;
 			} else {
 				fillEdges = fillGouraudEnvmapEdges16;
-				fillTriangleOld = fillTriangleOldGouraud16;
 			}
 		}
 		break;
@@ -1394,26 +1225,18 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
 		n = (e0->x - e1->x) * (e2->y - e1->y) - (e2->x - e1->x) * (e0->y - e1->y);
 		if (n > 0) {
 			bindMeshPolyData(ms, i);
-			#ifndef OLD_TRIANGLE_DRAW
-				drawTriangle(e0, e1, e2);
-			#else
-				drawTriangleOld(e0, e1, e2);
-			#endif
+			drawTriangle(e0, e1, e2);
 
 			if (ms->poly[i].numPoints == 4) {	// if quad then render another triangle
 				e1 = e2;
 				e2 = &elements[*index];
-				#ifndef OLD_TRIANGLE_DRAW
-					drawTriangle(e0, e1, e2);
-				#else
-					drawTriangleOld(e0, e1, e2);
-				#endif
+				drawTriangle(e0, e1, e2);
 			}
 		}
 		if (ms->poly[i].numPoints == 4) ++index;
 	}
 
-	if (mustUseFastGouraud(ms)) {
+	if (mustUseSemisoftGouraud(ms)) {
 		CCB *lastScanlineCel = *(currentScanlineCel8 - 1);
 		lastScanlineCel->ccb_Flags |= CCB_LAST;
 		drawCels(*scanlineCel8);
@@ -1478,17 +1301,19 @@ static void initSoftEngineArrays()
 	initDivs();
 }
 
-void initEngineSoft()
+void initEngineSoft(bool usesSemisoftGouraud)
 {
 	initSoftEngineArrays();
-	if (fastGouraud) initSemiSoftGouraud();
+
+	semisoftGouraud = usesSemisoftGouraud;
+	if (semisoftGouraud) initSemiSoftGouraud();
 
 	if (!lineColorShades[0]) lineColorShades[0] = crateColorShades(31,23,15, COLOR_GRADIENTS_SIZE, false);
 	if (!lineColorShades[1]) lineColorShades[1] = crateColorShades(15,23,31, COLOR_GRADIENTS_SIZE, false);
 	if (!lineColorShades[2]) lineColorShades[2] = crateColorShades(15,31,23, COLOR_GRADIENTS_SIZE, false);
 	if (!lineColorShades[3]) lineColorShades[3] = crateColorShades(31,15,23, COLOR_GRADIENTS_SIZE, false);
 
-	if (!gouraudColorShades) gouraudColorShades = crateColorShades(27,29,31, COLOR_GRADIENTS_SIZE, true);
+	if (!gouraudColorShades) gouraudColorShades = crateColorShades(31,31,31, COLOR_GRADIENTS_SIZE, true);
 
 	initSoftBuffer();
 
