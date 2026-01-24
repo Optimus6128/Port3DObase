@@ -285,13 +285,12 @@ static void calculateTriangleGradients(ScreenElement *e0, ScreenElement *e1, Scr
 	}
 }
 
-// 107(95), 29, 17
-// 35(30), 17, 11
+// 107, 29, 17
+// 35, 16, 12
 // 25, 22, 10, 63
 // 19, 15, 8, 29
-// The rest same or lost 1fps with prepareEdgeListGenericForm
 
-static void prepareEdgeListGenericForm(ScreenElement* e0, ScreenElement* e1)
+static void prepareEdgeListSoft(ScreenElement* e0, ScreenElement* e1)
 {
 	Edge* edgeListToWrite;
 	int x0, x1, y0, y1, c0, c1, u0, u1, v0, v1;
@@ -339,18 +338,53 @@ static void prepareEdgeListGenericForm(ScreenElement* e0, ScreenElement* e1)
 	dy = y1 - y0;
 
 	edgeListToWrite = &edgeListToWrite[y0];
-	while (dy-- > 0) {
-		int x = FIXED_TO_INT(fx, FP_BASE);
-		edgeListToWrite->x = x;
-		edgeListToWrite->c = fc;
-		edgeListToWrite->u = fu;
-		edgeListToWrite->v = fv;
-		++edgeListToWrite;
-		fx += dx;
-		fc += dc;
-		fu += du;
-		fv += dv;
-	};
+
+	switch (renderSoftMethod) {
+		case RENDER_SOFT_METHOD_GOURAUD:
+		{
+			while (dy-- > 0) {
+				int x = FIXED_TO_INT(fx, FP_BASE);
+				edgeListToWrite->x = x;
+				edgeListToWrite->c = fc;
+				++edgeListToWrite;
+				fx += dx;
+				fc += dc;
+			};
+		} break;
+
+		case RENDER_SOFT_METHOD_ENVMAP:
+		{
+			while (dy-- > 0) {
+				int x = FIXED_TO_INT(fx, FP_BASE);
+				edgeListToWrite->x = x;
+				edgeListToWrite->u = fu;
+				edgeListToWrite->v = fv;
+				++edgeListToWrite;
+				fx += dx;
+				fu += du;
+				fv += dv;
+			};
+		} break;
+
+		case (RENDER_SOFT_METHOD_GOURAUD | RENDER_SOFT_METHOD_ENVMAP):
+		{
+			while (dy-- > 0) {
+				int x = FIXED_TO_INT(fx, FP_BASE);
+				edgeListToWrite->x = x;
+				edgeListToWrite->c = fc;
+				edgeListToWrite->u = fu;
+				edgeListToWrite->v = fv;
+				++edgeListToWrite;
+				fx += dx;
+				fc += dc;
+				fu += du;
+				fv += dv;
+			};
+		} break;
+
+		default:
+			break;
+	}
 }
 
 static void prepareEdgeListSemiGouraud(ScreenElement* e0, ScreenElement* e1)
@@ -403,209 +437,6 @@ static void prepareEdgeListSemiGouraud(ScreenElement* e0, ScreenElement* e1)
 		fx += dx;
 		fc += dc;
 	};
-}
-
-static void prepareEdgeListGouraud(ScreenElement *e0, ScreenElement *e1)
-{
-	Edge* edgeListToWrite;
-	int x0, x1, y0, y1, c0, c1;
-	int dy, dx, dc;
-	int fx, fc;
-
-	int32* dvt = &divTab[DIV_TAB_SIZE / 2];
-	int repDiv;
-
-	//if (e0->y == e1->y) return;
-
-	// Assumes CCW
-	if (e0->y < e1->y) {
-		x0 = e0->x; y0 = e0->y; c0 = e0->c;
-		x1 = e1->x; y1 = e1->y; c1 = e1->c;
-
-		if (y0 > SCREEN_HEIGHT - 1 || y1 < 0) return;
-
-		repDiv = dvt[y1-y0];
-		dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-		dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-
-		if (y0 < 0) {
-			x0 -= y0 * dx;
-			c0 -= y0 * dc;
-			y0 = 0;
-		}
-		if (y1 > SCREEN_HEIGHT - 1) {
-			y1 = SCREEN_HEIGHT - 1;
-		}
-		dy = y1 - y0;
-
-		fx = INT_TO_FIXED(x0, FP_BASE);
-		fc = INT_TO_FIXED(c0, FP_BASE);
-
-		edgeListToWrite = &leftEdge[y0];
-		while(dy-- > 0) {
-			int x = FIXED_TO_INT(fx, FP_BASE);
-			edgeListToWrite->x = x;
-			edgeListToWrite->c = fc;
-			++edgeListToWrite;
-			fx += dx;
-			fc += dc;
-		};
-	}
-	else {
-		ScreenElement* eTemp = e0; e0 = e1; e1 = eTemp;
-		{
-			x0 = e0->x; y0 = e0->y;
-			x1 = e1->x; y1 = e1->y;
-
-			if (y0 > SCREEN_HEIGHT - 1 || y1 < 0) return;
-
-			repDiv = dvt[y1 - y0];
-			dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-
-			if (y0 < 0) {
-				x0 -= y0 * dx;
-				y0 = 0;
-			}
-			if (y1 > SCREEN_HEIGHT - 1) {
-				y1 = SCREEN_HEIGHT - 1;
-			}
-			dy = y1 - y0;
-
-			fx = INT_TO_FIXED(x0, FP_BASE);
-
-			edgeListToWrite = &rightEdge[y0];
-			while(dy-- > 0) {
-				int x = FIXED_TO_INT(fx, FP_BASE);
-				edgeListToWrite->x = x;
-				++edgeListToWrite;
-				fx += dx;
-			};
-		}
-	}
-}
-
-static void prepareEdgeListEnvmap(ScreenElement *e0, ScreenElement *e1)
-{
-	Edge *edgeListToWrite;
-	ScreenElement *eTemp;
-	int32 *dvt = &divTab[DIV_TAB_SIZE/2];
-
-	//if (e0->y == e1->y) return;
-
-	// Assumes CCW
-	if (e0->y < e1->y) {
-		edgeListToWrite = leftEdge;
-	}
-	else {
-		edgeListToWrite = rightEdge;
-
-		eTemp = e0;
-		e0 = e1;
-		e1 = eTemp;
-	}
-
-    {
-        const int x0 = e0->x; int y0 = e0->y; int u0 = e0->u; int v0 = e0->v;
-        const int x1 = e1->x; int y1 = e1->y; int u1 = e1->u; int v1 = e1->v;
-
-        int dy = y1 - y0;
-		const int repDiv = dvt[dy];
-        const int dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-		const int du = ((u1 - u0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-		const int dv = ((v1 - v0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-
-        int fx = INT_TO_FIXED(x0, FP_BASE);
-		int fu = INT_TO_FIXED(u0, FP_BASE);
-		int fv = INT_TO_FIXED(v0, FP_BASE);
-
-		/*if (y0 < 0) {
-			fx += -y0 * dx;
-			fu += -y0 * du;
-			fv += -y0 * dv;
-			dy += y0;
-			y0 = 0;
-		}
-		if (y1 > SCREEN_HEIGHT-1) {
-			dy -= (y1 - SCREEN_HEIGHT-1);
-		}*/
-
-        edgeListToWrite = &edgeListToWrite[y0];
-        while(dy-- > 0) {
-			int x = FIXED_TO_INT(fx, FP_BASE);
-			edgeListToWrite->x = x;
-			edgeListToWrite->u = fu;
-			edgeListToWrite->v = fv;
-            ++edgeListToWrite;
-            fx += dx;
-			fu += du;
-			fv += dv;
-		};
-    }
-}
-
-static void prepareEdgeListGouraudEnvmap(ScreenElement *e0, ScreenElement *e1)
-{
-	Edge *edgeListToWrite;
-	ScreenElement *eTemp;
-	int32 *dvt = &divTab[DIV_TAB_SIZE/2];
-
-	//if (e0->y == e1->y) return;
-
-	// Assumes CCW
-	if (e0->y < e1->y) {
-		edgeListToWrite = leftEdge;
-	}
-	else {
-		edgeListToWrite = rightEdge;
-
-		eTemp = e0;
-		e0 = e1;
-		e1 = eTemp;
-	}
-
-    {
-        const int x0 = e0->x; int y0 = e0->y; int c0 = e0->c; int u0 = e0->u; int v0 = e0->v;
-        const int x1 = e1->x; int y1 = e1->y; int c1 = e1->c; int u1 = e1->u; int v1 = e1->v;
-
-        int dy = y1 - y0;
-		const int repDiv = dvt[dy];
-        const int dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-		const int dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-		const int du = ((u1 - u0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-		const int dv = ((v1 - v0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-
-        int fx = INT_TO_FIXED(x0, FP_BASE);
-		int fc = INT_TO_FIXED(c0, FP_BASE);
-		int fu = INT_TO_FIXED(u0, FP_BASE);
-		int fv = INT_TO_FIXED(v0, FP_BASE);
-
-		/*if (y0 < 0) {
-			fx += -y0 * dx;
-			fc += -y0 * dc;
-			fu += -y0 * du;
-			fv += -y0 * dv;
-			dy += y0;
-			y0 = 0;
-		}
-		if (y1 > SCREEN_HEIGHT-1) {
-			dy -= (y1 - SCREEN_HEIGHT-1);
-		}*/
-
-        edgeListToWrite = &edgeListToWrite[y0];
-        while(dy-- > 0) {
-			int x = FIXED_TO_INT(fx, FP_BASE);
-			//CLAMP(x, 0, SCREEN_WIDTH-1)
-			edgeListToWrite->x = x;
-			edgeListToWrite->c = fc;
-			edgeListToWrite->u = fu;
-			edgeListToWrite->v = fv;
-            ++edgeListToWrite;
-            fx += dx;
-			fc += dc;
-			fu += du;
-			fv += dv;
-		};
-    }
 }
 
 static void fillGouraudEdges8_SemiSoft(int y0, int y1)
@@ -1259,8 +1090,10 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 
 	if (useSemisoftGouraud) {
 		currentScanlineCel8 = scanlineCel8;
+		prepareEdgeList = prepareEdgeListSemiGouraud;
 	} else {
 		prepareAndPositionSoftBuffer(ms, elements);
+		prepareEdgeList = prepareEdgeListSoft;
 	}
 
 	switch(renderSoftMethod) {
@@ -1270,7 +1103,6 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 				prepareEdgeList = prepareEdgeListSemiGouraud;
 				fillEdges = fillGouraudEdges8_SemiSoft;
 			} else {
-				prepareEdgeList = prepareEdgeListGouraud;
 				if (ms->renderType & MESH_OPTION_RENDER_SOFT8) {
 					fillEdges = fillGouraudEdges8;
 				} else {
@@ -1282,7 +1114,6 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 
 		case RENDER_SOFT_METHOD_ENVMAP:
 		{
-			prepareEdgeList = prepareEdgeListEnvmap;
 			if (ms->renderType & MESH_OPTION_RENDER_SOFT8) {
 				fillEdges = fillEnvmapEdges8;
 			} else {
@@ -1293,7 +1124,6 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 
 		case RENDER_SOFT_METHOD_GOURAUD | RENDER_SOFT_METHOD_ENVMAP:
 		{
-			prepareEdgeList = prepareEdgeListGouraudEnvmap;
 			if (ms->renderType & MESH_OPTION_RENDER_SOFT8) {
 				fillEdges = fillGouraudEnvmapEdges8;
 			} else {
@@ -1305,7 +1135,6 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 		default:
 		break;
 	}
-	prepareEdgeList = prepareEdgeListGenericForm;
 }
 
 static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
