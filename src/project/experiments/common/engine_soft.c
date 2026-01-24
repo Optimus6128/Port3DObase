@@ -285,10 +285,10 @@ static void calculateTriangleGradients(ScreenElement *e0, ScreenElement *e1, Scr
 	}
 }
 
-// 107, 29, 17
-// 35, 16, 12
-// 25, 22, 10, 63
-// 19, 15, 8, 29
+// 107, 32, 22
+// 35, 20, 15
+// 25, 23, 11, 63
+// 19, 17, 9, 29
 
 static void prepareEdgeListSoft(ScreenElement* e0, ScreenElement* e1)
 {
@@ -520,6 +520,7 @@ static void fillGouraudEdges8(int y0, int y1)
 		const int xl = le->x;
 		const int cl = le->c;
 		int length = re->x - xl;
+
 		unsigned char *dst = vram8 + xl;
 		uint32 *dst32;
 
@@ -636,7 +637,9 @@ static void fillEnvmapEdges8(int y0, int y1)
 {
 	const int stride8 = softBuffer.stride;
 	unsigned char *vram8 = (unsigned char*)softBufferCurrentPtr + y0 * stride8;
-	int32 *dvt = &divTab[DIV_TAB_SIZE/2];
+
+	const int du = grads.du;
+	const int dv = grads.dv;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -648,17 +651,12 @@ static void fillEnvmapEdges8(int y0, int y1)
 	do {
 		const int xl = le->x;
 		const int ul = le->u;
-		const int ur = re->u;
 		const int vl = le->v;
-		const int vr = re->v;
 		int length = re->x - xl;
 
 		unsigned char *dst = vram8 + xl;
 		uint32 *dst32;
 
-		const int repDiv = dvt[length];
-		const int du = ((ur - ul) * repDiv) >> DIV_TAB_SHIFT;
-		const int dv = ((vr - vl) * repDiv) >> DIV_TAB_SHIFT;
 		int fu = ul;
 		int fv = vl;
 
@@ -716,7 +714,9 @@ static void fillEnvmapEdges16(int y0, int y1)
 {
 	const int stride16 = softBuffer.stride >> 1;
 	uint16 *vram16 = (uint16*)softBufferCurrentPtr + y0 * stride16;
-	int32 *dvt = &divTab[DIV_TAB_SIZE/2];
+
+	const int du = grads.du;
+	const int dv = grads.dv;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -728,18 +728,13 @@ static void fillEnvmapEdges16(int y0, int y1)
 	do {
 		const int xl = le->x;
 		const int ul = le->u;
-		const int ur = re->u;
 		const int vl = le->v;
-		const int vr = re->v;
 		int length = re->x - xl;
 
 		if (length>0){
 			uint16 *dst = vram16 + xl;
 			uint32 *dst32;
 
-			const int repDiv = dvt[length];
-			const int du = ((ur - ul) * repDiv) >> DIV_TAB_SHIFT;
-			const int dv = ((vr - vl) * repDiv) >> DIV_TAB_SHIFT;
 			int fu = ul;
 			int fv = vl;
 			
@@ -789,7 +784,10 @@ static void fillGouraudEnvmapEdges8(int y0, int y1)
 {
 	const int stride8 = softBuffer.stride;
 	unsigned char *vram8 = (unsigned char*)softBufferCurrentPtr + y0 * stride8;
-	int32 *dvt = &divTab[DIV_TAB_SIZE/2];
+
+	const int dc = grads.dc;
+	const int du = grads.du;
+	const int dv = grads.dv;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -801,19 +799,13 @@ static void fillGouraudEnvmapEdges8(int y0, int y1)
 	do {
 		const int xl = le->x;
 		const int cl = le->c;
-		const int cr = re->c;
 		const int ul = le->u;
-		const int ur = re->u;
 		const int vl = le->v;
-		const int vr = re->v;
 		int length = re->x - xl;
+
 		unsigned char *dst = vram8 + xl;
 		uint32 *dst32;
 
-		const int repDiv = dvt[length];
-		const int dc = ((cr - cl) * repDiv) >> DIV_TAB_SHIFT;
-		const int du = ((ur - ul) * repDiv) >> DIV_TAB_SHIFT;
-		const int dv = ((vr - vl) * repDiv) >> DIV_TAB_SHIFT;
 		int fc = cl;
 		int fu = ul;
 		int fv = vl;
@@ -824,7 +816,7 @@ static void fillGouraudEnvmapEdges8(int y0, int y1)
 		if (xlp) {
 			while (xlp++ < 4 && length-- > 0) {
 				c = (texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)] * FIXED_TO_INT(fc, FP_BASE)) >> COLOR_ENVMAP_SHR;
-				*dst++ = c + 1;
+				*dst++ = c;
 
 				fc += dc;
 				fu += du;
@@ -857,9 +849,9 @@ static void fillGouraudEnvmapEdges8(int y0, int y1)
 			fv += dv;
 
 			#ifdef BIG_ENDIAN
-				*dst32++ = ((c0 << 24) | (c1 << 16) | (c2 << 8) | c3) + 0x01010101;
+				* dst32++ = ((c0 << 24) | (c1 << 16) | (c2 << 8) | c3);
 			#else
-				*dst32++ = ((c3 << 24) | (c2 << 16) | (c1 << 8) | c0) + 0x01010101;
+			* dst32++ = ((c3 << 24) | (c2 << 16) | (c1 << 8) | c0);
 			#endif
 			length-=4;
 		};
@@ -867,7 +859,7 @@ static void fillGouraudEnvmapEdges8(int y0, int y1)
 		dst = (unsigned char*)dst32;
 		while (length-- > 0) {
 			c = (texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)] * FIXED_TO_INT(fc, FP_BASE)) >> COLOR_ENVMAP_SHR;
-			*dst++ = c + 1;
+			*dst++ = c;
 
 			fc += dc;
 			fu += du;
@@ -884,7 +876,10 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 {
 	const int stride16 = softBuffer.stride >> 1;
 	uint16 *vram16 = (uint16*)softBufferCurrentPtr + y0 * stride16;
-	int32 *dvt = &divTab[DIV_TAB_SIZE/2];
+
+	const int dc = grads.dc;
+	const int du = grads.du;
+	const int dv = grads.dv;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -908,10 +903,6 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 			uint16 *dst = vram16 + xl;
 			uint32 *dst32;
 
-			const int repDiv = dvt[length];
-			const int dc = ((cr - cl) * repDiv) >> DIV_TAB_SHIFT;
-			const int du = ((ur - ul) * repDiv) >> DIV_TAB_SHIFT;
-			const int dv = ((vr - vl) * repDiv) >> DIV_TAB_SHIFT;
 			int fc = cl;
 			int fu = ul;
 			int fv = vl;
@@ -923,7 +914,7 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
 				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
 				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				*dst++ = (r << 10) | (g << 5) | b + 1;
+				*dst++ = (r << 10) | (g << 5) | b;
 				fc += dc;
 				fu += du;
 				fv += dv;
@@ -956,9 +947,9 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 				fv += dv;
 
 				#ifdef BIG_ENDIAN
-					*dst32++ = (c0 << 16) | c1 + 65537;
+					* dst32++ = (c0 << 16) | c1;
 				#else
-					*dst32++ = (c1 << 16) | c0 + 65537;
+					* dst32++ = (c1 << 16) | c0;
 				#endif
 
 				length -= 2;
@@ -971,7 +962,7 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
 				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
 				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				*dst++ = (r << 10) | (g << 5) | b + 1;
+				*dst++ = (r << 10) | (g << 5) | b;
 				fc += dc;
 				fu += du;
 				fv += dv;

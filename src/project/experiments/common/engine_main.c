@@ -325,7 +325,7 @@ static void calculateVertexLighting(Mesh *mesh)
 	for (i=0; i<verticesNum; ++i) {
 		const int light = -(getVector3Ddot(normal, &rotatedGlobalLightVec) >> NORMAL_SHIFT);
 		int c = light >> (NORMAL_SHIFT-COLOR_GRADIENTS_SHR);
-		CLAMP(c,1,COLOR_GRADIENTS_SIZE-2)
+		CLAMP(c,4,COLOR_GRADIENTS_SIZE-4)
 		screenElements[i].c = c;
 		++normal;
 	}
@@ -337,8 +337,10 @@ static void calculateVertexEnvmapTC(Mesh *mesh)
 	const int verticesNum = mesh->verticesNum;
 	Texture *tex = &mesh->tex[0];
 
-	const int texWidthHalf = tex->width >> 1;
-	const int texHeightHalf = tex->height >> 1;
+	const int texW = tex->width;
+	const int texH = tex->height;
+	const int texWidthHalf = texW >> 1;
+	const int texHeightHalf = texH >> 1;
 	const int wShiftHalf = NORMAL_SHIFT - tex->wShift + 1;
 	const int hShiftHalf = NORMAL_SHIFT - tex->hShift + 1;
 
@@ -347,6 +349,9 @@ static void calculateVertexEnvmapTC(Mesh *mesh)
 		if (normZ != 0) {
 			int normX = (rotatedNormals[i].x>>wShiftHalf) + texWidthHalf;
 			int normY = (rotatedNormals[i].y>>hShiftHalf) + texHeightHalf;
+
+			CLAMP(normX, 4, texW - 4);
+			CLAMP(normY, 4, texH - 4);
 
 			screenElements[i].u = normX;
 			screenElements[i].v = normY;
