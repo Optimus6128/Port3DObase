@@ -285,36 +285,164 @@ static void calculateTriangleGradients(ScreenElement *e0, ScreenElement *e1, Scr
 	}
 }
 
+// 107(95), 29, 17
+// 35(30), 17, 11
+// 25, 22, 10, 63
+// 19, 15, 8, 29
+// The rest same or lost 1fps with prepareEdgeListGenericForm
+
+static void prepareEdgeListGenericForm(ScreenElement* e0, ScreenElement* e1)
+{
+	Edge* edgeListToWrite;
+	int x0, x1, y0, y1, c0, c1, u0, u1, v0, v1;
+	int dy, dx, dc, du, dv;
+	int fx, fc, fu, fv;
+
+	int32* dvt = &divTab[DIV_TAB_SIZE / 2];
+	int repDiv;
+
+	// Assumes CCW
+	if (e0->y < e1->y) {
+		edgeListToWrite = leftEdge;
+	}
+	else {
+		ScreenElement* eTemp = e0; e0 = e1; e1 = eTemp;
+		edgeListToWrite = rightEdge;
+	}
+
+	x0 = e0->x; y0 = e0->y; c0 = e0->c; u0 = e0->u; v0 = e0->v;
+	x1 = e1->x; y1 = e1->y; c1 = e1->c; u1 = e1->u; v1 = e1->v;
+
+	if (y0 > SCREEN_HEIGHT - 1 || y1 < 0) return;
+
+	repDiv = dvt[y1 - y0];
+	dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+	dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+	du = ((u1 - u0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+	dv = ((v1 - v0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+
+	fx = INT_TO_FIXED(x0, FP_BASE);
+	fc = INT_TO_FIXED(c0, FP_BASE);
+	fu = INT_TO_FIXED(u0, FP_BASE);
+	fv = INT_TO_FIXED(v0, FP_BASE);
+
+	if (y0 < 0) {
+		fx += -y0 * dx;
+		fc += -y0 * dc;
+		fu += -y0 * du;
+		fv += -y0 * dv;
+		y0 = 0;
+	}
+	if (y1 > SCREEN_HEIGHT - 1) {
+		y1 = SCREEN_HEIGHT - 1;
+	}
+	dy = y1 - y0;
+
+	edgeListToWrite = &edgeListToWrite[y0];
+	while (dy-- > 0) {
+		int x = FIXED_TO_INT(fx, FP_BASE);
+		edgeListToWrite->x = x;
+		edgeListToWrite->c = fc;
+		edgeListToWrite->u = fu;
+		edgeListToWrite->v = fv;
+		++edgeListToWrite;
+		fx += dx;
+		fc += dc;
+		fu += du;
+		fv += dv;
+	};
+}
+
 static void prepareEdgeListSemiGouraud(ScreenElement* e0, ScreenElement* e1)
 {
 	Edge* edgeListToWrite;
+	int x0, x1, y0, y1, c0, c1;
+	int dy, dx, dc;
+	int fx, fc;
+
+	int32* dvt = &divTab[DIV_TAB_SIZE / 2];
+	int repDiv;
+
+	// Assumes CCW
+	if (e0->y < e1->y) {
+		edgeListToWrite = leftEdge;
+	}
+	else {
+		ScreenElement* eTemp = e0; e0 = e1; e1 = eTemp;
+		edgeListToWrite = rightEdge;
+	}
+
+	x0 = e0->x; y0 = e0->y; c0 = e0->c;
+	x1 = e1->x; y1 = e1->y; c1 = e1->c;
+
+	if (y0 > SCREEN_HEIGHT - 1 || y1 < 0) return;
+
+	repDiv = dvt[y1 - y0];
+	dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+	dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+
+	fx = INT_TO_FIXED(x0, FP_BASE);
+	fc = INT_TO_FIXED(c0, FP_BASE);
+
+	if (y0 < 0) {
+		fx += -y0 * dx;
+		fc += -y0 * dc;
+		y0 = 0;
+	}
+	if (y1 > SCREEN_HEIGHT - 1) {
+		y1 = SCREEN_HEIGHT - 1;
+	}
+	dy = y1 - y0;
+
+	edgeListToWrite = &edgeListToWrite[y0];
+	while (dy-- > 0) {
+		int x = FIXED_TO_INT(fx, FP_BASE);
+		edgeListToWrite->x = x;
+		edgeListToWrite->c = fc;
+		++edgeListToWrite;
+		fx += dx;
+		fc += dc;
+	};
+}
+
+static void prepareEdgeListGouraud(ScreenElement *e0, ScreenElement *e1)
+{
+	Edge* edgeListToWrite;
+	int x0, x1, y0, y1, c0, c1;
+	int dy, dx, dc;
+	int fx, fc;
+
+	int32* dvt = &divTab[DIV_TAB_SIZE / 2];
+	int repDiv;
 
 	//if (e0->y == e1->y) return;
 
 	// Assumes CCW
 	if (e0->y < e1->y) {
-		edgeListToWrite = leftEdge;
-	} else {
-		ScreenElement* eTemp = e0; e0 = e1; e1 = eTemp;
-		edgeListToWrite = rightEdge;
-	}
+		x0 = e0->x; y0 = e0->y; c0 = e0->c;
+		x1 = e1->x; y1 = e1->y; c1 = e1->c;
 
-	{
-		int32* dvt = &divTab[DIV_TAB_SIZE / 2];
+		if (y0 > SCREEN_HEIGHT - 1 || y1 < 0) return;
 
-		const int x0 = e0->x; int y0 = e0->y; int c0 = e0->c;
-		const int x1 = e1->x; int y1 = e1->y; int c1 = e1->c;
+		repDiv = dvt[y1-y0];
+		dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+		dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
 
-		int dy = y1 - y0;
-		const int repDiv = dvt[dy];
-		const int dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-		const int dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+		if (y0 < 0) {
+			x0 -= y0 * dx;
+			c0 -= y0 * dc;
+			y0 = 0;
+		}
+		if (y1 > SCREEN_HEIGHT - 1) {
+			y1 = SCREEN_HEIGHT - 1;
+		}
+		dy = y1 - y0;
 
-		int fx = INT_TO_FIXED(x0, FP_BASE);
-		int fc = INT_TO_FIXED(c0, FP_BASE);
+		fx = INT_TO_FIXED(x0, FP_BASE);
+		fc = INT_TO_FIXED(c0, FP_BASE);
 
-		edgeListToWrite = &edgeListToWrite[y0];
-		while (dy-- > 0) {
+		edgeListToWrite = &leftEdge[y0];
+		while(dy-- > 0) {
 			int x = FIXED_TO_INT(fx, FP_BASE);
 			edgeListToWrite->x = x;
 			edgeListToWrite->c = fc;
@@ -323,61 +451,29 @@ static void prepareEdgeListSemiGouraud(ScreenElement* e0, ScreenElement* e1)
 			fc += dc;
 		};
 	}
-}
-
-static void prepareEdgeListGouraud(ScreenElement *e0, ScreenElement *e1)
-{
-	Edge *edgeListToWrite;
-	ScreenElement *eTemp;
-	int32 *dvt = &divTab[DIV_TAB_SIZE/2];
-
-	//if (e0->y == e1->y) return;
-
-	// Assumes CCW
-	if (e0->y < e1->y) {
-		edgeListToWrite = leftEdge;
-
-		{
-			const int x0 = e0->x; int y0 = e0->y; int c0 = e0->c;
-			const int x1 = e1->x; int y1 = e1->y; int c1 = e1->c;
-
-			int dy = y1 - y0;
-			const int repDiv = dvt[dy];
-			const int dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-			const int dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-
-			int fx = INT_TO_FIXED(x0, FP_BASE);
-			int fc = INT_TO_FIXED(c0, FP_BASE);
-
-			edgeListToWrite = &edgeListToWrite[y0];
-			while(dy-- > 0) {
-				int x = FIXED_TO_INT(fx, FP_BASE);
-				edgeListToWrite->x = x;
-				edgeListToWrite->c = fc;
-				++edgeListToWrite;
-				fx += dx;
-				fc += dc;
-			};
-		}
-	}
 	else {
-		edgeListToWrite = rightEdge;
-
-		eTemp = e0;
-		e0 = e1;
-		e1 = eTemp;
-
+		ScreenElement* eTemp = e0; e0 = e1; e1 = eTemp;
 		{
-			const int x0 = e0->x; int y0 = e0->y;
-			const int x1 = e1->x; int y1 = e1->y;
+			x0 = e0->x; y0 = e0->y;
+			x1 = e1->x; y1 = e1->y;
 
-			int dy = y1 - y0;
-			const int repDiv = dvt[dy];
-			const int dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+			if (y0 > SCREEN_HEIGHT - 1 || y1 < 0) return;
 
-			int fx = INT_TO_FIXED(x0, FP_BASE);
+			repDiv = dvt[y1 - y0];
+			dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
 
-			edgeListToWrite = &edgeListToWrite[y0];
+			if (y0 < 0) {
+				x0 -= y0 * dx;
+				y0 = 0;
+			}
+			if (y1 > SCREEN_HEIGHT - 1) {
+				y1 = SCREEN_HEIGHT - 1;
+			}
+			dy = y1 - y0;
+
+			fx = INT_TO_FIXED(x0, FP_BASE);
+
+			edgeListToWrite = &rightEdge[y0];
 			while(dy-- > 0) {
 				int x = FIXED_TO_INT(fx, FP_BASE);
 				edgeListToWrite->x = x;
@@ -1065,17 +1161,20 @@ static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2
 {
 	int y0, y1;
 
-	if (shouldSkipTriangle(e0, e1, e2)) return;
-
-	y0 = e0->y;
-	y1 = y0;
+	//if (shouldSkipTriangle(e0, e1, e2)) return;
 
 	prepareEdgeList(e0, e1);
 	prepareEdgeList(e1, e2);
 	prepareEdgeList(e2, e0);
 
+	y0 = e0->y;
+	y1 = y0;
+
 	if (e1->y < y0) y0 = e1->y; if (e1->y > y1) y1 = e1->y;
 	if (e2->y < y0) y0 = e2->y; if (e2->y > y1) y1 = e2->y;
+
+	CLAMP_LEFT(y0, 0);
+	CLAMP_RIGHT(y1, SCREEN_HEIGHT - 1);
 
 	calculateTriangleGradients(e0, e1, e2);
 
@@ -1206,6 +1305,7 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 		default:
 		break;
 	}
+	prepareEdgeList = prepareEdgeListGenericForm;
 }
 
 static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
