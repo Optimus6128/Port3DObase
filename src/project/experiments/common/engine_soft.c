@@ -292,61 +292,68 @@ static void calculateTriangleGradients(ScreenElement *e0, ScreenElement *e1, Scr
 
 static void prepareEdgeListSoft(ScreenElement* e0, ScreenElement* e1)
 {
-	Edge* edgeListToWrite;
-	int x0, x1, y0, y1, c0, c1, u0, u1, v0, v1;
-	int dy, dx, dc, du, dv;
-	int fx, fc, fu, fv;
+	Edge* edgeListDst;
+	int dx, dy, fx;
 
-	int32* dvt = &divTab[DIV_TAB_SIZE / 2];
-	int repDiv;
+	int x0 = e0->x;
+	int x1 = e1->x;
+	int y0 = e0->y;
+	int y1 = e1->y;
 
 	// Assumes CCW
-	if (e0->y < e1->y) {
-		edgeListToWrite = leftEdge;
-	}
-	else {
-		ScreenElement* eTemp = e0; e0 = e1; e1 = eTemp;
-		edgeListToWrite = rightEdge;
-	}
+	if (y0 < y1) {	// Left Edge side
+		int c0, c1, u0, u1, v0, v1;
+		int dc, du, dv;
+		int fc, fu = 0, fv = 0;
 
-	x0 = e0->x; y0 = e0->y; c0 = e0->c; u0 = e0->u; v0 = e0->v;
-	x1 = e1->x; y1 = e1->y; c1 = e1->c; u1 = e1->u; v1 = e1->v;
+		bool needsGouraud = renderSoftMethod & RENDER_SOFT_METHOD_GOURAUD;
+		bool needsTexture = renderSoftMethod & RENDER_SOFT_METHOD_ENVMAP;
 
-	if (y0 > SCREEN_HEIGHT - 1 || y1 < 0) return;
+		int repDiv = divTab[DIV_TAB_SIZE / 2 + y1 - y0];
 
-	repDiv = dvt[y1 - y0];
-	dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-	dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-	du = ((u1 - u0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-	dv = ((v1 - v0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+		dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+		fx = INT_TO_FIXED(x0, FP_BASE);
 
-	fx = INT_TO_FIXED(x0, FP_BASE);
-	fc = INT_TO_FIXED(c0, FP_BASE);
-	fu = INT_TO_FIXED(u0, FP_BASE);
-	fv = INT_TO_FIXED(v0, FP_BASE);
+		if (needsGouraud) {
+			c0 = e0->c;
+			c1 = e1->c;
+			dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+			fc = INT_TO_FIXED(c0, FP_BASE);
+		}
+		if (needsTexture) {
+			u0 = e0->u; v0 = e0->v;
+			u1 = e1->u; v1 = e1->v;
+			du = ((u1 - u0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+			dv = ((v1 - v0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+			fu = INT_TO_FIXED(u0, FP_BASE);
+			fv = INT_TO_FIXED(v0, FP_BASE);
+		}
 
-	if (y0 < 0) {
-		fx += -y0 * dx;
-		fc += -y0 * dc;
-		fu += -y0 * du;
-		fv += -y0 * dv;
-		y0 = 0;
-	}
-	if (y1 > SCREEN_HEIGHT - 1) {
-		y1 = SCREEN_HEIGHT - 1;
-	}
-	dy = y1 - y0;
+		if (y0 < 0) {
+			fx += -y0 * dx;
+			if (needsGouraud) {
+				fc += -y0 * dc;
+			}
+			if (needsTexture) {
+				fu += -y0 * du;
+				fv += -y0 * dv;
+			}
+			y0 = 0;
+		}
+		if (y1 > SCREEN_HEIGHT - 1) {
+			y1 = SCREEN_HEIGHT - 1;
+		}
+		dy = y1 - y0;
 
-	edgeListToWrite = &edgeListToWrite[y0];
+		edgeListDst = &leftEdge[y0];
 
-	switch (renderSoftMethod) {
+		switch (renderSoftMethod) {
 		case RENDER_SOFT_METHOD_GOURAUD:
 		{
 			while (dy-- > 0) {
-				int x = FIXED_TO_INT(fx, FP_BASE);
-				edgeListToWrite->x = x;
-				edgeListToWrite->c = fc;
-				++edgeListToWrite;
+				edgeListDst->x = FIXED_TO_INT(fx, FP_BASE);
+				edgeListDst->c = fc;
+				++edgeListDst;
 				fx += dx;
 				fc += dc;
 			};
@@ -355,11 +362,10 @@ static void prepareEdgeListSoft(ScreenElement* e0, ScreenElement* e1)
 		case RENDER_SOFT_METHOD_ENVMAP:
 		{
 			while (dy-- > 0) {
-				int x = FIXED_TO_INT(fx, FP_BASE);
-				edgeListToWrite->x = x;
-				edgeListToWrite->u = fu;
-				edgeListToWrite->v = fv;
-				++edgeListToWrite;
+				edgeListDst->x = FIXED_TO_INT(fx, FP_BASE);
+				edgeListDst->u = fu;
+				edgeListDst->v = fv;
+				++edgeListDst;
 				fx += dx;
 				fu += du;
 				fv += dv;
@@ -369,12 +375,11 @@ static void prepareEdgeListSoft(ScreenElement* e0, ScreenElement* e1)
 		case (RENDER_SOFT_METHOD_GOURAUD | RENDER_SOFT_METHOD_ENVMAP):
 		{
 			while (dy-- > 0) {
-				int x = FIXED_TO_INT(fx, FP_BASE);
-				edgeListToWrite->x = x;
-				edgeListToWrite->c = fc;
-				edgeListToWrite->u = fu;
-				edgeListToWrite->v = fv;
-				++edgeListToWrite;
+				edgeListDst->x = FIXED_TO_INT(fx, FP_BASE);
+				edgeListDst->c = fc;
+				edgeListDst->u = fu;
+				edgeListDst->v = fv;
+				++edgeListDst;
 				fx += dx;
 				fc += dc;
 				fu += du;
@@ -384,6 +389,31 @@ static void prepareEdgeListSoft(ScreenElement* e0, ScreenElement* e1)
 
 		default:
 			break;
+		}
+	} else {
+		// Reversed x0,x1 and y0,y1 inside this code (no need for temp Edge* swap)
+		// Right side on this triangle algorithm only needs to interpolate X
+
+		int repDiv = divTab[DIV_TAB_SIZE / 2 + y0 - y1];
+
+		dx = ((x0 - x1) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+		fx = INT_TO_FIXED(x1, FP_BASE);
+
+		if (y1 < 0) {
+			fx += -y1 * dx;
+			y1 = 0;
+		}
+		if (y0 > SCREEN_HEIGHT - 1) {
+			y0 = SCREEN_HEIGHT - 1;
+		}
+		dy = y0 - y1;
+
+		edgeListDst = &rightEdge[y1];
+		while (dy-- > 0) {
+			edgeListDst->x = FIXED_TO_INT(fx, FP_BASE);
+			++edgeListDst;
+			fx += dx;
+		};
 	}
 }
 
