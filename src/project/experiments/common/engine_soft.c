@@ -287,8 +287,8 @@ static void calculateTriangleGradients(ScreenElement *e0, ScreenElement *e1, Scr
 
 // 107, 32, 22
 // 35, 20, 15
-// 25, 23, 11, 63
-// 19, 17, 9, 29
+// 25, 23, 12, 63
+// 19, 17, 10, 29
 
 static void prepareEdgeListSoft(ScreenElement* e0, ScreenElement* e1)
 {
@@ -891,12 +891,9 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 	do {
 		const int xl = le->x;
 		const int cl = le->c;
-		const int cr = re->c;
 		const int ul = le->u;
-		const int ur = re->u;
 		const int vl = le->v;
-		const int vr = re->v;
-		int r,g,b;
+		uint32 rb0, g0;
 		int length = re->x - xl;
 
 		if (length>0){
@@ -911,10 +908,9 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 			if (xl & 1) {
 				c = FIXED_TO_INT(fc, FP_BASE);
 				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
-				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
-				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				*dst++ = (r << 10) | (g << 5) | b;
+				rb0 = (((cc & 0x7c1f) * c) >> 5) & 0x7c1f;
+				g0 = (((cc & 0x03e0) * c) >> 5) & 0x03e0;
+				*dst++ = (uint16)(rb0 | g0);
 				fc += dc;
 				fu += du;
 				fv += dv;
@@ -925,32 +921,29 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 			dst32 = (uint32*)dst;
 			while(length >= 2) {
 				int c0, c1;
+				uint32 rb0g1, g0rb1;
 
 				c = FIXED_TO_INT(fc, FP_BASE);
-				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
-				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
-				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				c0 = (r << 10) | (g << 5) | b;
+				c0 = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
 				fc += dc;
 				fu += du;
 				fv += dv;
 
 				c = FIXED_TO_INT(fc, FP_BASE);
-				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
-				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
-				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				c1 = (r << 10) | (g << 5) | b;
+				c1 = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
 				fc += dc;
 				fu += du;
 				fv += dv;
 
 				#ifdef BIG_ENDIAN
-					* dst32++ = (c0 << 16) | c1;
+					cc = (c0 << 16) | c1;
 				#else
-					* dst32++ = (c1 << 16) | c0;
+					cc = (c1 << 16) | c0;
 				#endif
+
+				rb0g1 = (((cc & 0x7c1f03e0) >> 5) * c) & 0x7c1f03e0;
+				g0rb1 = (((cc & 0x03e07c1f) * c) >> 5) & 0x03e07c1f;
+				*dst32++ = rb0g1 | g0rb1;
 
 				length -= 2;
 			};
@@ -959,10 +952,9 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 			if (length & 1) {
 				c = FIXED_TO_INT(fc, FP_BASE);
 				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
-				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
-				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				*dst++ = (r << 10) | (g << 5) | b;
+				rb0 = (((cc & 0x7c1f) * c) >> 5) & 0x7c1f;
+				g0 = (((cc & 0x03e0) * c) >> 5) & 0x03e0;
+				*dst++ = (uint16)(rb0 | g0);
 				fc += dc;
 				fu += du;
 				fv += dv;
