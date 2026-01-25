@@ -17,6 +17,11 @@
 #include "sprite_engine.h"
 
 
+#define RENDER_TEST_GOURAUD (1 << 0)
+#define RENDER_TEST_TEXTURE (1 << 1)
+#define RENDER_TEST_GOURAUD_TEXTURE (RENDER_TEST_GOURAUD | RENDER_TEST_TEXTURE)
+
+
 static int rotX=10, rotY=20, rotZ=50;
 static int zoom=512;
 
@@ -25,13 +30,14 @@ static const int zoomVel = 2;
 
 static Camera *camera;
 
-static Object3D *softObj[4];
+static Object3D *softObj[2];
+static Object3D *hardObj[2];
 
-static int renderSoftMethodIndex = RENDER_SOFT_METHOD_GOURAUD;
+static int renderTestIndex = RENDER_TEST_GOURAUD;
 
 static bool autoRot = false;
 
-static int selectedSoftObj = 0;
+static int selectedObj = 0;
 
  
 static Object3D *initMeshObject(int meshgenId, const MeshgenParams params, int optionsFlags, Texture *tex)
@@ -118,20 +124,19 @@ static void inputScript()
 	}
 
 	if (isJoyButtonPressedOnce(JOY_BUTTON_SELECT)) {
-		selectedSoftObj = (selectedSoftObj+1) & 3;
+		selectedObj = (selectedObj+1) & 1;
 	}
 
 	if (isJoyButtonPressedOnce(JOY_BUTTON_START)) {
-		if (++renderSoftMethodIndex == RENDER_SOFT_METHOD_LAST) renderSoftMethodIndex = 0;
-
-		setRenderSoftMethod(renderSoftMethodIndex);
+		if (++renderTestIndex > RENDER_TEST_GOURAUD_TEXTURE) renderTestIndex = RENDER_TEST_GOURAUD;
 	}
 }
 
 
 void effectMeshGouraudCelInit()
 {
-	const int lightingOptions = MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP;
+	const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING;// | MESH_OPTION_ENABLE_ENVMAP;
+	const int celLightingOptions = 0;// MESH_OPTION_ENABLE_LIGHTING;
 	MeshgenParams paramsCube = initMeshObjectParams(MESH_CUBE);
 	MeshgenParams paramsColumnoid = initMeshObjectParams(MESH_SQUARE_COLUMNOID);
 
@@ -141,25 +146,27 @@ void effectMeshGouraudCelInit()
 	Texture *cloudTex8 = initGenTexture(texWidth, texHeight, 8, NULL, 1, TEXGEN_CLOUDS, NULL);
 	Texture *cloudTex16 = initGenTexture(texWidth, texHeight, 16, NULL, 1, TEXGEN_CLOUDS, NULL);
 
-	softObj[0] = initMeshObject(MESH_CUBE, paramsCube, MESH_OPTION_RENDER_SOFT8 | lightingOptions, cloudTex8);
-	softObj[1] = initMeshObject(MESH_SQUARE_COLUMNOID, paramsColumnoid, MESH_OPTION_RENDER_SOFT8 | lightingOptions, cloudTex8);
-	softObj[2] = initMeshObject(MESH_CUBE, paramsCube, MESH_OPTION_RENDER_SOFT16 | lightingOptions, cloudTex16);
-	softObj[3] = initMeshObject(MESH_SQUARE_COLUMNOID, paramsColumnoid, MESH_OPTION_RENDER_SOFT16 | lightingOptions, cloudTex16);
+	softObj[0] = initMeshObject(MESH_CUBE, paramsCube, MESH_OPTION_RENDER_SOFT8 | softLightingOptions, cloudTex8);
+	softObj[1] = initMeshObject(MESH_SQUARE_COLUMNOID, paramsColumnoid, MESH_OPTION_RENDER_SOFT8 | softLightingOptions, cloudTex8);
+	hardObj[0] = initMeshObject(MESH_CUBE, paramsCube, MESH_OPTIONS_DEFAULT | celLightingOptions, cloudTex16);
+	hardObj[1] = initMeshObject(MESH_SQUARE_COLUMNOID, paramsColumnoid, MESH_OPTIONS_DEFAULT | celLightingOptions, cloudTex16);
 
-	setRenderSoftMethod(renderSoftMethodIndex);
+	setRenderSoftMethod(RENDER_SOFT_METHOD_GOURAUD);
 
 	camera = createCamera();
 }
 
-static void renderSoftObj(int posX, int posY, int posZ, int t)
+static void scriptRenderObj(int posX, int posY, int posZ, int t, Object3D *obj)
 {
-	setObject3Dpos(softObj[selectedSoftObj], posX, posY, zoom + -posZ);
+	if (obj == NULL) return;
+
+	setObject3Dpos(obj, posX, posY, zoom + -posZ);
 	if (autoRot) {
-		setObject3Drot(softObj[selectedSoftObj], t<<1, t>>1, t);
+		setObject3Drot(obj, t<<1, t>>1, t);
 	} else {
-		setObject3Drot(softObj[selectedSoftObj], rotX, rotY, rotZ);
+		setObject3Drot(obj, rotX, rotY, rotZ);
 	}
-	renderObject3D(softObj[selectedSoftObj], camera, NULL, 0);
+	renderObject3D(obj, camera, NULL, 0);
 }
 
 void effectMeshGouraudCelRun()
@@ -168,14 +175,10 @@ void effectMeshGouraudCelRun()
 
 	inputScript();
 
-	if ((softObj[selectedSoftObj]->mesh->renderType & MESH_OPTION_RENDER_SOFT8) && renderSoftMethodIndex==RENDER_SOFT_METHOD_WIREFRAME) {
-		renderSoftMethodIndex = RENDER_SOFT_METHOD_GOURAUD;
-		setRenderSoftMethod(renderSoftMethodIndex);
+	if (renderTestIndex & RENDER_TEST_GOURAUD) {
+		scriptRenderObj(0, 0, 256, t, softObj[selectedObj]);
 	}
-
-	renderSoftObj(0, 0, 256, t);
-	
-	//printf("test %d", t);
-
-	displayDebugNums(false);
+	if (renderTestIndex & RENDER_TEST_TEXTURE) {
+		scriptRenderObj(0, 0, 256, t, hardObj[selectedObj]);
+	}
 }
