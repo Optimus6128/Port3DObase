@@ -39,6 +39,8 @@ static bool autoRot = false;
 
 static int selectedObj = 0;
 
+static bool envmapTest = false;
+
  
 static Object3D *initMeshObject(int meshgenId, const MeshgenParams params, int optionsFlags, Texture *tex)
 {
@@ -135,8 +137,7 @@ static void inputScript()
 
 void effectMeshGouraudCelInit()
 {
-	//const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_INV_GOURAUD | MESH_OPTION_ENABLE_ENVMAP;
-	const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_INV_GOURAUD;
+	int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_INV_GOURAUD;
 
 	//const int celLightingOptions = MESH_OPTION_ENABLE_LIGHTING;
 	const int celLightingOptions = 0;
@@ -150,13 +151,20 @@ void effectMeshGouraudCelInit()
 	Texture *cloudTex8 = initGenTexture(texWidth, texHeight, 8, NULL, 1, TEXGEN_CLOUDS, NULL);
 	Texture *cloudTex16 = initGenTexture(texWidth, texHeight, 16, NULL, 1, TEXGEN_CLOUDS, NULL);
 
+	if (envmapTest) {
+		softLightingOptions |= MESH_OPTION_ENABLE_ENVMAP;
+	}
+
 	softObj[0] = initMeshObject(MESH_CUBE, paramsCube, MESH_OPTION_RENDER_SOFT8 | softLightingOptions, cloudTex8);
 	softObj[1] = initMeshObject(MESH_SQUARE_COLUMNOID, paramsColumnoid, MESH_OPTION_RENDER_SOFT8 | softLightingOptions, cloudTex8);
 	hardObj[0] = initMeshObject(MESH_CUBE, paramsCube, MESH_OPTIONS_DEFAULT | celLightingOptions, cloudTex16);
 	hardObj[1] = initMeshObject(MESH_SQUARE_COLUMNOID, paramsColumnoid, MESH_OPTIONS_DEFAULT | celLightingOptions, cloudTex16);
 
-	//setRenderSoftMethod(RENDER_SOFT_METHOD_GOURAUD | RENDER_SOFT_METHOD_ENVMAP);
-	setRenderSoftMethod(RENDER_SOFT_METHOD_GOURAUD);
+	if (envmapTest) {
+		setRenderSoftMethod(RENDER_SOFT_METHOD_GOURAUD | RENDER_SOFT_METHOD_ENVMAP);
+	} else {
+		setRenderSoftMethod(RENDER_SOFT_METHOD_GOURAUD);
+	}
 
 	camera = createCamera();
 }
@@ -171,7 +179,7 @@ static void scriptRenderObj(int posX, int posY, int posZ, int t, Object3D *obj)
 		//softPixC = CEL_BLEND_ADDITIVE;
 		//softPixC = CEL_BLEND_AVERAGE;
 		//softPixC = CEL_BLEND_SUBTRACT;
-		softPixC = CEL_BLEND_SUBTRACT_INV3;
+		softPixC = CEL_BLEND_SUBTRACT_INV2;
 	}
 	setRenderSoftPixc(softPixC);
 
