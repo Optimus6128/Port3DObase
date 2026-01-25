@@ -21,6 +21,8 @@ typedef struct CelRenderInfo
 {
 	bool opaque;			// if some combination of values end up with unaltered bitmap (usually it's 0x1F00, which however is S1 * 8 / 8 + 0)
 	bool xor;				// does XOR instead of ADD or SUB
+	bool sub;				// does SUB instead of ADD
+	bool useav;				// if true useav for extra pixel math funcs (switch between add, sub, clamp, etc..) else use avbits for 5bit source2 if asked
 	bool needsFrameBuffer;	// if at least one of the two sources are framebuffer
 	int source1;
 	int source2;
@@ -86,7 +88,8 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 col
 		const int pdv = info->pdv;
 		const int dv2 = info->dv2;
 		const int avBits = info->avbits;
-		const bool doXor = info-> xor;
+		const bool doXor = info->xor;
+		const bool doSub = info->sub;
 
 		if (info->source1 == PPMPC_1S_PDC) {
 			src1 = color;
@@ -110,7 +113,7 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 col
 					r1 = (r1 + avBits) >> dv2;
 					g1 = (g1 + avBits) >> dv2;
 					b1 = (b1 + avBits) >> dv2;
-					} else {
+				} else {
 					r1 = (r1 ^ avBits) >> dv2;
 					g1 = (g1 ^ avBits) >> dv2;
 					b1 = (b1 ^ avBits) >> dv2;
@@ -133,21 +136,23 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 col
 			g2 = (src2 >> 5) & 31;
 			b2 = src2 & 31;
 			if (!doXor) {
-				r1 = (r1 + r2) >> dv2;
-				g1 = (g1 + g2) >> dv2;
-				b1 = (b1 + b2) >> dv2;
+				if (!doSub) {
+					r1 = (r1 + r2) >> dv2;
+					g1 = (g1 + g2) >> dv2;
+					b1 = (b1 + b2) >> dv2;
 
-				//r1 = (r1 - r2) >> dv2;
-				//g1 = (g1 - g2) >> dv2;
-				//b1 = (b1 - b2) >> dv2;
+					if (r1 > 31) r1 = 31;
+					if (g1 > 31) g1 = 31;
+					if (b1 > 31) b1 = 31;
+				} else {
+					r1 = (r1 - r2) >> dv2;
+					g1 = (g1 - g2) >> dv2;
+					b1 = (b1 - b2) >> dv2;
 
-				//if (r1 < 0) r1 = 0;
-				//if (g1 < 0) g1 = 0;
-				//if (b1 < 0) b1 = 0;
-
-				if (r1 > 31) r1 = 31;
-				if (g1 > 31) g1 = 31;
-				if (b1 > 31) b1 = 31;
+					if (r1 < 0) r1 = 0;
+					if (g1 < 0) g1 = 0;
+					if (b1 < 0) b1 = 0;
+				}
 			} else {
 				r1 = (r1 ^ r2) >> dv2;
 				g1 = (g1 ^ g2) >> dv2;
@@ -731,14 +736,20 @@ static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	}
 }
 
-static void decodePIXCinfo(CelRenderInfo *info, uint32 pixc)
+static void decodePIXCinfo(CelRenderInfo *info, uint32 flags, uint32 pixc)
 {
+	info->transparentRGB0 = !(flags & CCB_BGND);
+	info->mariaRender = flags & CCB_MARIA;
+
 	if (pixc == 0x1F00) {
 		info->opaque = true;
 		return;
 	}
 
 	info->opaque = false;
+	info->useav = flags & CCB_USEAV;
+	info->xor = flags & CCB_PXOR;
+
 	info->source1 = pixc & PPMPC_1S_MASK;
 	info->source2 = pixc & PPMPC_2S_MASK;
 
@@ -748,6 +759,11 @@ static void decodePIXCinfo(CelRenderInfo *info, uint32 pixc)
 	info->pdv = 1 << (((((pixc & PPMPC_SF_MASK) >> PPMPC_SF_SHIFT) - 1) & 3) + 1);
 	info->dv2 = pixc & PPMPC_2D_MASK;	// will be shift right
 	info->avbits = (pixc & PPMPC_AV_MASK) >> PPMPC_AV_SHIFT;
+
+	info->sub = false;
+	if (info->useav) {
+		info->sub = (pixc & PPMPC_AV_INVERT_2S);
+	}
 }
 
 static CelRenderInfo* setupCelRenderInfo(CCB* cel)
@@ -757,32 +773,29 @@ static CelRenderInfo* setupCelRenderInfo(CCB* cel)
 	const uint32 pixc = cel->ccb_PIXC;
 	const uint32 p1 = (pixc >> 16) & 65535;
 	const uint32 p0 = pixc & 65535;
+	const uint32 flags = cel->ccb_Flags;
 
-	const uint32 pOver = cel->ccb_Flags & CCB_POVER_MASK;
+	const uint32 pOver = flags & CCB_POVER_MASK;
 	switch(pOver) {
 		case PMODE_ZERO:
-			decodePIXCinfo(&info[0], p0);
+			decodePIXCinfo(&info[0], flags, p0);
 		break;
 
 		case PMODE_ONE:
-			decodePIXCinfo(&info[0], p1);
+			decodePIXCinfo(&info[0], flags, p1);
 		break;
 
 		case PMODE_PDC:
 		default:
 			// If both are the same, use the same anyway
 			if (p0 == p1) {
-				decodePIXCinfo(&info[0], p0);
+				decodePIXCinfo(&info[0], flags, p0);
 			} else {
-				decodePIXCinfo(&info[0], p0);
-				decodePIXCinfo(&info[1], p1);
+				decodePIXCinfo(&info[0], flags, p0);
+				decodePIXCinfo(&info[1], flags, p1);
 			}
 		break;
 	}
-
-	info[0].xor = cel->ccb_Flags & CCB_PXOR;
-	info[0].transparentRGB0 = !(cel->ccb_Flags & CCB_BGND);
-	info[0].mariaRender = cel->ccb_Flags & CCB_MARIA;
 
 	return info;
 }

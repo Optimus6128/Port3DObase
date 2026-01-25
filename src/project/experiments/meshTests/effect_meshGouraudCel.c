@@ -168,9 +168,9 @@ static void scriptRenderObj(int posX, int posY, int posZ, int t, Object3D *obj)
 	if (obj == NULL) return;
 
 	if (renderTestIndex == RENDER_TEST_GOURAUD_TEXTURE) {
-		softPixC = CEL_BLEND_ADDITIVE;
+		//softPixC = CEL_BLEND_ADDITIVE;
 		//softPixC = CEL_BLEND_AVERAGE;
-		//softPixC = CEL_BLEND_SUBTRACT;
+		softPixC = CEL_BLEND_SUBTRACT;
 	}
 	setRenderSoftPixc(softPixC);
 
