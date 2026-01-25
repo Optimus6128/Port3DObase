@@ -43,7 +43,7 @@ static bool gridTextureOn = true;
 static bool halfInterp = false;
 static bool plasmaInsteadOfWater = false;
 
-Camera *camera;
+static Camera *camera;
 
 
 static void updatePolyDataTextureShifts(int newWidth, int newHeight)

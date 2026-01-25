@@ -51,7 +51,7 @@ typedef struct SoftBuffer
 	int width;
 	int height;
 	int stride;
-	int currentIndex;
+	//int currentIndex;
 	unsigned char *data;
 	CCB *cel;
 }SoftBuffer;
@@ -192,9 +192,7 @@ static void drawAntialiasedLine(ScreenElement *e1, ScreenElement *e2)
     if (x2 < 0) outcode2 |= 0x0100;
         else if (x2 > screenWidth-1) outcode2 |= 0x1000;
 
-    //if ((outcode1 & outcode2)!=0) return;
-
-    //if ((outcode1 | outcode2)!=0) return; // normally, should check for possible clip
+    if ((outcode1 | outcode2)!=0) return; // normally, should check for possible clip
 	//I will do lame method now
 
     // ==================
@@ -285,10 +283,10 @@ static void calculateTriangleGradients(ScreenElement *e0, ScreenElement *e1, Scr
 	}
 }
 
-// 107, 32, 22
-// 35, 20, 15
-// 25, 23, 12, 63
-// 19, 17, 10, 29
+// 107, 31, 20
+// 35, 19, 14
+// 24, 23, 12, 63
+// 18d, 17, 10, 29
 
 static void prepareEdgeListSoft(ScreenElement* e0, ScreenElement* e1)
 {
@@ -516,17 +514,27 @@ static void fillGouraudEdges8(int y0, int y1)
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
 	Edge *re = &rightEdge[y0];
+
 	do {
-		const int xl = le->x;
-		const int cl = le->c;
-		int length = re->x - xl;
+		int xl, cl;
+		int fc, xlp;
+		int length;
+		unsigned char* dst;
+		uint32* dst32;
 
-		unsigned char *dst = vram8 + xl;
-		uint32 *dst32;
+		xl = le->x;
+		cl = le->c;
+		if (xl < 0) {
+			cl += -xl * dc;
+			xl = 0;
+		}
+		CLAMP_RIGHT(re->x, SCREEN_WIDTH - 1);
+		length = re->x - xl;
 
-		int fc = cl;
+		dst = vram8 + xl;
+		fc = cl;
 
-		int xlp = xl & 3;
+		xlp = xl & 3;
 		if (xlp) {
 			xlp = 4 - xlp;
 			while (xlp-- > 0 && length-- > 0) {
@@ -584,13 +592,23 @@ static void fillGouraudEdges16(int y0, int y1)
 	Edge *le = &leftEdge[y0];
 	Edge *re = &rightEdge[y0];
 	do {
-		const int xl = le->x;
-		const int cl = le->c;
-		int length = re->x - xl;
-		uint16 *dst = vram16 + xl;
-		uint32 *dst32;
+		int xl, cl;
+		int fc;
+		int length;
+		uint16* dst;
+		uint32* dst32;
 
-		int fc = cl;
+		xl = le->x;
+		cl = le->c;
+		if (xl < 0) {
+			cl += -xl * dc;
+			xl = 0;
+		}
+		CLAMP_RIGHT(re->x, SCREEN_WIDTH - 1);
+		length = re->x - xl;
+
+		dst = vram16 + xl;
+		fc = cl;
 
 		if (length>0){
 			if (xl & 1) {
@@ -636,7 +654,7 @@ static void fillGouraudEdges16(int y0, int y1)
 static void fillEnvmapEdges8(int y0, int y1)
 {
 	const int stride8 = softBuffer.stride;
-	unsigned char *vram8 = (unsigned char*)softBufferCurrentPtr + y0 * stride8;
+	uint8 *vram8 = (uint8*)softBufferCurrentPtr + y0 * stride8;
 
 	const int du = grads.du;
 	const int dv = grads.dv;
@@ -649,18 +667,29 @@ static void fillEnvmapEdges8(int y0, int y1)
 	unsigned char* texData = (unsigned char*)activeTexture->bitmap;
 
 	do {
-		const int xl = le->x;
-		const int ul = le->u;
-		const int vl = le->v;
-		int length = re->x - xl;
+		int xl, ul, vl;
+		int fu, fv, xlp;
+		int length;
+		uint8* dst;
+		uint32* dst32;
 
-		unsigned char *dst = vram8 + xl;
-		uint32 *dst32;
+		xl = le->x;
+		ul = le->u;
+		vl = le->v;
+		if (xl < 0) {
+			ul += -xl * du;
+			vl += -xl * dv;
+			xl = 0;
+		}
+		CLAMP_RIGHT(re->x, SCREEN_WIDTH - 1);
+		length = re->x - xl;
 
-		int fu = ul;
-		int fv = vl;
+		dst = vram8 + xl;
 
-		int xlp = xl & 3;
+		fu = ul;
+		fv = vl;
+
+		xlp = xl & 3;
 		if (xlp) {
 			while (xlp++ < 4 && length-- > 0) {
 				*dst++ = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
@@ -697,7 +726,7 @@ static void fillEnvmapEdges8(int y0, int y1)
 			length-=4;
 		};
 
-		dst = (unsigned char*)dst32;
+		dst = (uint8*)dst32;
 		while (length-- > 0) {
 			*dst++ = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
 			fu += du;
@@ -726,10 +755,19 @@ static void fillEnvmapEdges16(int y0, int y1)
 	uint16* texData = (uint16*)activeTexture->bitmap;
 
 	do {
-		const int xl = le->x;
-		const int ul = le->u;
-		const int vl = le->v;
-		int length = re->x - xl;
+		int xl, ul, vl;
+		int length;
+
+		xl = le->x;
+		ul = le->u;
+		vl = le->v;
+		if (xl < 0) {
+			ul += -xl * du;
+			vl += -xl * dv;
+			xl = 0;
+		}
+		CLAMP_RIGHT(re->x, SCREEN_WIDTH - 1);
+		length = re->x - xl;
 
 		if (length>0){
 			uint16 *dst = vram16 + xl;
@@ -783,7 +821,7 @@ static void fillEnvmapEdges16(int y0, int y1)
 static void fillGouraudEnvmapEdges8(int y0, int y1)
 {
 	const int stride8 = softBuffer.stride;
-	unsigned char *vram8 = (unsigned char*)softBufferCurrentPtr + y0 * stride8;
+	uint8 *vram8 = (uint8*)softBufferCurrentPtr + y0 * stride8;
 
 	const int dc = grads.dc;
 	const int du = grads.du;
@@ -797,26 +835,35 @@ static void fillGouraudEnvmapEdges8(int y0, int y1)
 	unsigned char* texData = (unsigned char*)activeTexture->bitmap;
 
 	do {
-		const int xl = le->x;
-		const int cl = le->c;
-		const int ul = le->u;
-		const int vl = le->v;
-		int length = re->x - xl;
+		int xl, cl, ul, vl;
+		int fc, fu, fv, xlp;
+		int length;
+		uint8* dst;
+		uint32* dst32;
 
-		unsigned char *dst = vram8 + xl;
-		uint32 *dst32;
+		xl = le->x;
+		cl = le->c;
+		ul = le->u;
+		vl = le->v;
+		if (xl < 0) {
+			cl += -xl * dc;
+			ul += -xl * du;
+			vl += -xl * dv;
+			xl = 0;
+		}
+		CLAMP_RIGHT(re->x, SCREEN_WIDTH - 1);
+		length = re->x - xl;
 
-		int fc = cl;
-		int fu = ul;
-		int fv = vl;
+		dst = vram8 + xl;
 
-		int c;
+		fc = cl;
+		fu = ul;
+		fv = vl;
 
-		int xlp = xl & 3;
+		xlp = xl & 3;
 		if (xlp) {
 			while (xlp++ < 4 && length-- > 0) {
-				c = (texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)] * FIXED_TO_INT(fc, FP_BASE)) >> COLOR_ENVMAP_SHR;
-				*dst++ = c;
+				*dst++ = (texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)] * FIXED_TO_INT(fc, FP_BASE)) >> COLOR_ENVMAP_SHR;
 
 				fc += dc;
 				fu += du;
@@ -856,10 +903,9 @@ static void fillGouraudEnvmapEdges8(int y0, int y1)
 			length-=4;
 		};
 
-		dst = (unsigned char*)dst32;
+		dst = (uint8*)dst32;
 		while (length-- > 0) {
-			c = (texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)] * FIXED_TO_INT(fc, FP_BASE)) >> COLOR_ENVMAP_SHR;
-			*dst++ = c;
+			*dst++ = (texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)] * FIXED_TO_INT(fc, FP_BASE)) >> COLOR_ENVMAP_SHR;
 
 			fc += dc;
 			fu += du;
@@ -889,12 +935,22 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 	uint16* texData = (uint16*)activeTexture->bitmap;
 
 	do {
-		const int xl = le->x;
-		const int cl = le->c;
-		const int ul = le->u;
-		const int vl = le->v;
+		int xl, cl, ul, vl;
+		int length;
 		uint32 rb0, g0;
-		int length = re->x - xl;
+
+		xl = le->x;
+		cl = le->c;
+		ul = le->u;
+		vl = le->v;
+		if (xl < 0) {
+			cl += -xl * dc;
+			ul += -xl * du;
+			vl += -xl * dv;
+			xl = 0;
+		}
+		CLAMP_RIGHT(re->x, SCREEN_WIDTH - 1);
+		length = re->x - xl;
 
 		if (length>0){
 			uint16 *dst = vram16 + xl;
@@ -967,7 +1023,7 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 	} while(--count > 0);
 }
 
-static bool shouldSkipTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2)
+/*static bool shouldSkipTriangle(ScreenElement* e0, ScreenElement* e1, ScreenElement* e2)
 {
 	int outcode1 = 0, outcode2 = 0, outcode3 = 0;
 
@@ -999,7 +1055,7 @@ static bool shouldSkipTriangle(ScreenElement *e0, ScreenElement *e1, ScreenEleme
         else if (x2 > edgeR) outcode3 |= 0x1000;
 
     return ((outcode1 & outcode2 & outcode3)!=0);
-}
+}*/
 
 static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2)
 {
@@ -1037,16 +1093,34 @@ static void updateSoftBufferVariables(int posX, int posY, int width, int height,
 		celType = CEL_TYPE_CODED;
 	}
 
+	if (width > SCREEN_WIDTH - 1) {
+		width = SCREEN_WIDTH - 1;
+		CLAMP_LEFT(posX, 0);
+	}
+
+	if (height > SCREEN_HEIGHT - 1) {
+		height = SCREEN_HEIGHT - 1;
+		CLAMP_LEFT(posY, 0);
+	}
+
+
 	softBuffer.width = width;
 	softBuffer.height = height;
 	softBuffer.stride = (((softBuffer.width * softBuffer.bpp) + 31) >> 5) << 2;	// must be multiples of 4 bytes
 	if (softBuffer.stride < 8) softBuffer.stride = 8;					// and no less than 8 bytes
 
 	currentBufferSize = (((softBuffer.stride * softBuffer.height) + 255) >> 8) << 8; // must be in multiples of 256 bytes for the unrolled optimized memset
-	if (softBuffer.currentIndex + currentBufferSize > SOFT_BUFF_MAX_SIZE) {
+	/*if (softBuffer.currentIndex + currentBufferSize > SOFT_BUFF_MAX_SIZE) {
 		softBuffer.currentIndex = 0;
-	}
-	softBufferCurrentPtr = &softBuffer.data[softBuffer.currentIndex];
+	}*/
+	//softBufferCurrentPtr = &softBuffer.data[softBuffer.currentIndex];
+	softBufferCurrentPtr = &softBuffer.data[0];
+
+	// I can't for the love of god remember why I needed this currentIndex
+	// Like instead of the software rendered 3d object on a CEL drawn at the start of the buffer, I offset it every frame
+	// Was it in the case I would render more than one objects in the scene at the same time? But then I might still give one drawcall per object instead of link those CELs together, wouldn't I?
+	// I will comment out everything and then maybe delete later when I fix this
+
 	if (currentBufferSize <= SOFT_BUFF_MAX_SIZE) {
 		#ifdef ASM_VRAMSET
 			vramSet(0, softBufferCurrentPtr, currentBufferSize);
@@ -1054,7 +1128,7 @@ static void updateSoftBufferVariables(int posX, int posY, int width, int height,
 			memset(softBufferCurrentPtr, 0, currentBufferSize);
 		#endif
 
-		softBuffer.currentIndex += currentBufferSize;
+		//softBuffer.currentIndex += currentBufferSize;
 	}	// else something went wrong
 
 	setCelWidth(softBuffer.width, softBuffer.cel);
@@ -1070,6 +1144,7 @@ static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements)
 {
 	int i;
 	const int count = ms->verticesNum;
+	int width, height;
 
 	minX = maxX = elements[0].x;
 	minY = maxY = elements[0].y;
@@ -1083,13 +1158,16 @@ static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements)
 		if (y > maxY) maxY = y;
 	}
 
+	width = maxX - minX + 1;
+	height = maxY - minY + 1;
+
 	// Offset element positions to upper left min corner
 	for (i=0; i<count; ++i) {
-		elements[i].x -= minX;
-		elements[i].y -= minY;
+		if (width <= SCREEN_WIDTH) elements[i].x -= minX;
+		if (height <= SCREEN_HEIGHT) elements[i].y -= minY;
 	}
 
-	updateSoftBufferVariables(minX, minY, maxX - minX + 1, maxY - minY + 1, ms);
+	updateSoftBufferVariables(minX, minY, width, height, ms);
 }
 
 static bool mustUseSemisoftGouraud(Mesh *ms)
@@ -1227,7 +1305,7 @@ static void initSoftBuffer()
 	softBuffer.bpp = 16;
 	softBuffer.width = SCREEN_WIDTH;
 	softBuffer.height = SCREEN_HEIGHT;
-	softBuffer.currentIndex = 0;
+	//softBuffer.currentIndex = 0;
 
 	softBuffer.data = AllocMem(SOFT_BUFF_MAX_SIZE, MEMTYPE_ANY);
 	softBuffer.cel = createCel(softBuffer.width, softBuffer.height, softBuffer.bpp, CEL_TYPE_UNCODED);

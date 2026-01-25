@@ -43,7 +43,7 @@ static Sprite *scanlinesSpr;
 static unsigned char scanlinesBmp[(SCANLINES_SPR_WIDTH * SCANLINES_SPR_HEIGHT) / 8];
 static uint16 scanlinesPal[2];
 
-Camera *camera;
+static Camera *camera;
 
 
 static void inputScript()

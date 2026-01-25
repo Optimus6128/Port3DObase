@@ -151,9 +151,9 @@ void effectMeshGouraudCelInit()
 	camera = createCamera();
 }
 
-static void renderSoftObj(int posX, int posZ, int t)
+static void renderSoftObj(int posX, int posY, int posZ, int t)
 {
-	setObject3Dpos(softObj[selectedSoftObj], -posX, 0, zoom + -posZ);
+	setObject3Dpos(softObj[selectedSoftObj], posX, posY, zoom + -posZ);
 	if (autoRot) {
 		setObject3Drot(softObj[selectedSoftObj], t<<1, t>>1, t);
 	} else {
@@ -173,7 +173,7 @@ void effectMeshGouraudCelRun()
 		setRenderSoftMethod(renderSoftMethodIndex);
 	}
 
-	renderSoftObj(0, 256, t);
+	renderSoftObj(0, 0, 256, t);
 	
 	//printf("test %d", t);
 
