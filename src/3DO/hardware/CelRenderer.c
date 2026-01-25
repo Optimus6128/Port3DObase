@@ -99,33 +99,33 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 col
 		b1 = ((src1 & 31) * pmv) / pdv;
 
 		switch (info->source2) {
-		case PPMPC_2S_0:
-			r1 >>= dv2;
-			g1 >>= dv2;
-			b1 >>= dv2;
-			break;
+			case PPMPC_2S_0:
+				r1 >>= dv2;
+				g1 >>= dv2;
+				b1 >>= dv2;
+				break;
 
-		case PPMPC_2S_CCB:
-			if (!doXor) {
-				r1 = (r1 + avBits) >> dv2;
-				g1 = (g1 + avBits) >> dv2;
-				b1 = (b1 + avBits) >> dv2;
-				} else {
-				r1 = (r1 ^ avBits) >> dv2;
-				g1 = (g1 ^ avBits) >> dv2;
-				b1 = (b1 ^ avBits) >> dv2;
-			}
-			break;
+			case PPMPC_2S_CCB:
+				if (!doXor) {
+					r1 = (r1 + avBits) >> dv2;
+					g1 = (g1 + avBits) >> dv2;
+					b1 = (b1 + avBits) >> dv2;
+					} else {
+					r1 = (r1 ^ avBits) >> dv2;
+					g1 = (g1 ^ avBits) >> dv2;
+					b1 = (b1 ^ avBits) >> dv2;
+				}
+				break;
 
-		case PPMPC_2S_CFBD:
-			src2 = *vramDst;
-			addSrc2 = true;
-			break;
+			case PPMPC_2S_CFBD:
+				src2 = *vramDst;
+				addSrc2 = true;
+				break;
 
-		case PPMPC_2S_PDC:
-			src2 = color;
-			addSrc2 = true;
-			break;
+			case PPMPC_2S_PDC:
+				src2 = color;
+				addSrc2 = true;
+				break;
 		}
 
 		if (addSrc2) {
@@ -136,15 +136,24 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 col
 				r1 = (r1 + r2) >> dv2;
 				g1 = (g1 + g2) >> dv2;
 				b1 = (b1 + b2) >> dv2;
+
+				//r1 = (r1 - r2) >> dv2;
+				//g1 = (g1 - g2) >> dv2;
+				//b1 = (b1 - b2) >> dv2;
+
+				//if (r1 < 0) r1 = 0;
+				//if (g1 < 0) g1 = 0;
+				//if (b1 < 0) b1 = 0;
+
+				if (r1 > 31) r1 = 31;
+				if (g1 > 31) g1 = 31;
+				if (b1 > 31) b1 = 31;
 			} else {
 				r1 = (r1 ^ r2) >> dv2;
 				g1 = (g1 ^ g2) >> dv2;
 				b1 = (b1 ^ b2) >> dv2;
 			}
 		}
-		if (r1 > 31) r1 = 31;
-		if (g1 > 31) g1 = 31;
-		if (b1 > 31) b1 = 31;
 
 		color = (r1 << 10) | (g1 << 5) | b1;
 		if (!(color == 0 && info->transparentRGB0)) {

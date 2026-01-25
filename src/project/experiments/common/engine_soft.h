@@ -22,4 +22,5 @@ void initEngineSoft(bool usesSemisoftGouraud);
 void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements);
 
 void setRenderSoftMethod(int method);
+void setRenderSoftPixc(uint32 pixc);
 #endif

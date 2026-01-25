@@ -32,6 +32,7 @@ static CCB **currentScanlineCel8;
 static unsigned char *gourGradBmps;
 
 static bool semisoftGouraud = false;
+static uint32 softPixc = CEL_BLEND_OPAQUE;
 
 typedef struct Edge
 {
@@ -1259,9 +1260,11 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
 	if (mustUseSemisoftGouraud(ms)) {
 		CCB *lastScanlineCel = *(currentScanlineCel8 - 1);
 		lastScanlineCel->ccb_Flags |= CCB_LAST;
+		(*scanlineCel8)->ccb_PIXC = softPixc;
 		drawCels(*scanlineCel8);
 		lastScanlineCel->ccb_Flags &= ~CCB_LAST;
 	} else {
+		softBuffer.cel->ccb_PIXC = softPixc;
 		drawCels(softBuffer.cel);
 	}
 }
@@ -1298,6 +1301,11 @@ void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements)
 void setRenderSoftMethod(int method)
 {
 	renderSoftMethod = method;
+}
+
+void setRenderSoftPixc(uint32 pixc)
+{
+	softPixc = pixc;
 }
 
 static void initSoftBuffer()

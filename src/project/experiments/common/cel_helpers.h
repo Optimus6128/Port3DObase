@@ -15,6 +15,7 @@ enum {
 #define CEL_BLEND_OPAQUE 0x1F001F00
 #define CEL_BLEND_ADDITIVE 0x1F801F80
 #define CEL_BLEND_AVERAGE 0x1F811F81
+#define CEL_BLEND_SUBTRACT 0x1F821F82
 
 void initCel(int width, int height, int bpp, int type, CCB *cel);
 CCB *createCel(int width, int height, int bpp, int type);

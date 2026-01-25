@@ -135,8 +135,12 @@ static void inputScript()
 
 void effectMeshGouraudCelInit()
 {
-	const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING;// | MESH_OPTION_ENABLE_ENVMAP;
-	const int celLightingOptions = 0;// MESH_OPTION_ENABLE_LIGHTING;
+	const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP;
+	//const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING;
+
+	//const int celLightingOptions = MESH_OPTION_ENABLE_LIGHTING;
+	const int celLightingOptions = 0;
+
 	MeshgenParams paramsCube = initMeshObjectParams(MESH_CUBE);
 	MeshgenParams paramsColumnoid = initMeshObjectParams(MESH_SQUARE_COLUMNOID);
 
@@ -151,6 +155,7 @@ void effectMeshGouraudCelInit()
 	hardObj[0] = initMeshObject(MESH_CUBE, paramsCube, MESH_OPTIONS_DEFAULT | celLightingOptions, cloudTex16);
 	hardObj[1] = initMeshObject(MESH_SQUARE_COLUMNOID, paramsColumnoid, MESH_OPTIONS_DEFAULT | celLightingOptions, cloudTex16);
 
+	//setRenderSoftMethod(RENDER_SOFT_METHOD_GOURAUD | RENDER_SOFT_METHOD_ENVMAP);
 	setRenderSoftMethod(RENDER_SOFT_METHOD_GOURAUD);
 
 	camera = createCamera();
@@ -158,7 +163,16 @@ void effectMeshGouraudCelInit()
 
 static void scriptRenderObj(int posX, int posY, int posZ, int t, Object3D *obj)
 {
+	uint32 softPixC = CEL_BLEND_OPAQUE;
+
 	if (obj == NULL) return;
+
+	if (renderTestIndex == RENDER_TEST_GOURAUD_TEXTURE) {
+		softPixC = CEL_BLEND_ADDITIVE;
+		//softPixC = CEL_BLEND_AVERAGE;
+		//softPixC = CEL_BLEND_SUBTRACT;
+	}
+	setRenderSoftPixc(softPixC);
 
 	setObject3Dpos(obj, posX, posY, zoom + -posZ);
 	if (autoRot) {
@@ -175,10 +189,10 @@ void effectMeshGouraudCelRun()
 
 	inputScript();
 
-	if (renderTestIndex & RENDER_TEST_GOURAUD) {
-		scriptRenderObj(0, 0, 256, t, softObj[selectedObj]);
-	}
 	if (renderTestIndex & RENDER_TEST_TEXTURE) {
 		scriptRenderObj(0, 0, 256, t, hardObj[selectedObj]);
+	}
+	if (renderTestIndex & RENDER_TEST_GOURAUD) {
+		scriptRenderObj(0, 0, 256, t, softObj[selectedObj]);
 	}
 }
