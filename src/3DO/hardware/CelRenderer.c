@@ -101,6 +101,10 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 col
 		g1 = (((src1 >> 5) & 31) * pmv) / pdv;
 		b1 = ((src1 & 31) * pmv) / pdv;
 
+		if (r1 > 31) r1 = 31;
+		if (g1 > 31) g1 = 31;
+		if (b1 > 31) b1 = 31;
+
 		switch (info->source2) {
 			case PPMPC_2S_0:
 				r1 >>= dv2;

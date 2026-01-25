@@ -135,8 +135,8 @@ static void inputScript()
 
 void effectMeshGouraudCelInit()
 {
-	const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP;
-	//const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING;
+	//const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_INV_GOURAUD | MESH_OPTION_ENABLE_ENVMAP;
+	const int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_INV_GOURAUD;
 
 	//const int celLightingOptions = MESH_OPTION_ENABLE_LIGHTING;
 	const int celLightingOptions = 0;
@@ -170,7 +170,8 @@ static void scriptRenderObj(int posX, int posY, int posZ, int t, Object3D *obj)
 	if (renderTestIndex == RENDER_TEST_GOURAUD_TEXTURE) {
 		//softPixC = CEL_BLEND_ADDITIVE;
 		//softPixC = CEL_BLEND_AVERAGE;
-		softPixC = CEL_BLEND_SUBTRACT;
+		//softPixC = CEL_BLEND_SUBTRACT;
+		softPixC = CEL_BLEND_SUBTRACT_INV3;
 	}
 	setRenderSoftPixc(softPixC);
 
@@ -190,7 +191,7 @@ void effectMeshGouraudCelRun()
 	inputScript();
 
 	if (renderTestIndex & RENDER_TEST_TEXTURE) {
-		scriptRenderObj(0, 0, 256, t, hardObj[selectedObj]);
+		scriptRenderObj(0, 0, 248, t, hardObj[selectedObj]);
 	}
 	if (renderTestIndex & RENDER_TEST_GOURAUD) {
 		scriptRenderObj(0, 0, 256, t, softObj[selectedObj]);
