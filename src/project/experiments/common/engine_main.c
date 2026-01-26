@@ -325,9 +325,12 @@ static void calculateVertexLighting(Mesh *mesh, bool invertShade)
 	for (i=0; i<verticesNum; ++i) {
 		const int light = -(getVector3Ddot(normal, &rotatedGlobalLightVec) >> NORMAL_SHIFT);
 		int c = light >> (NORMAL_SHIFT-COLOR_GRADIENTS_SHR);
-		CLAMP(c, 4, COLOR_GRADIENTS_SIZE - 4);
 		if (invertShade) {
 			c = COLOR_GRADIENTS_SIZE - 1 - c;
+			c -= 16;
+			CLAMP(c, 0, COLOR_GRADIENTS_SIZE - 1);
+		} else {
+			CLAMP(c, 4, COLOR_GRADIENTS_SIZE - 4);
 		}
 		screenElements[i].c = c;
 		++normal;

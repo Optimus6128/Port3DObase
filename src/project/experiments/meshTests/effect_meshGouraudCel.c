@@ -179,7 +179,7 @@ static void scriptRenderObj(int posX, int posY, int posZ, int t, Object3D *obj)
 		//softPixC = CEL_BLEND_ADDITIVE;
 		//softPixC = CEL_BLEND_AVERAGE;
 		//softPixC = CEL_BLEND_SUBTRACT;
-		softPixC = CEL_BLEND_SUBTRACT_INV2;
+		softPixC = CEL_BLEND_SUBTRACT_INV;
 	}
 	setRenderSoftPixc(softPixC);
 
