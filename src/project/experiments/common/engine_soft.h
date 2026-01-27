@@ -29,4 +29,6 @@ void initInvertedShadeMaps(void);
 void updateRenderSoftShademap(uint8* shadeMapSrc);
 uint8* getRenderSoftShademap(void);
 
+void updateGouraudColorShades(int numShades, uint16* shades);
+
 #endif

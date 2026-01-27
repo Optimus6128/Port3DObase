@@ -114,6 +114,14 @@ static uint16 *crateColorShades(int r, int g, int b, int numShades, bool absolut
 	return colorShades;
 }
 
+void updateGouraudColorShades(int numShades, uint16 *shades)
+{
+	int i;
+	for (i=0; i<numShades; ++i) {
+		gouraudColorShades[i] = shades[i];
+	}
+}
+
 static void initDivs()
 {
     int i, ii;
