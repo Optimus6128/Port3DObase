@@ -23,4 +23,10 @@ void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements);
 
 void setRenderSoftMethod(int method);
 void setRenderSoftPixc(uint32 pixc);
+
+void initDefaultShadeMaps(void);
+void initInvertedShadeMaps(void);
+void updateRenderSoftShademap(uint8* shadeMapSrc);
+uint8* getRenderSoftShademap(void);
+
 #endif

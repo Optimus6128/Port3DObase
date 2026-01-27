@@ -137,7 +137,7 @@ static void inputScript()
 
 void effectMeshGouraudCelInit()
 {
-	int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_INV_GOURAUD;
+	int softLightingOptions = MESH_OPTION_ENABLE_LIGHTING;
 
 	//const int celLightingOptions = MESH_OPTION_ENABLE_LIGHTING;
 	const int celLightingOptions = 0;
@@ -165,6 +165,8 @@ void effectMeshGouraudCelInit()
 	} else {
 		setRenderSoftMethod(RENDER_SOFT_METHOD_GOURAUD);
 	}
+
+	initInvertedShadeMaps();
 
 	camera = createCamera();
 }

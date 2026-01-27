@@ -316,23 +316,20 @@ static void prepareTransformedMeshBillboardCELs(Mesh *mesh)
 	}
 }
 
-static void calculateVertexLighting(Mesh *mesh, bool invertShade)
+static void calculateVertexLighting(Mesh *mesh)
 {
 	int i;
 	const int verticesNum = mesh->verticesNum;
 	Vector3D *normal = mesh->vertexNormal;
 
+	uint8* shadeMap = getRenderSoftShademap();
+
 	for (i=0; i<verticesNum; ++i) {
 		const int light = -(getVector3Ddot(normal, &rotatedGlobalLightVec) >> NORMAL_SHIFT);
 		int c = light >> (NORMAL_SHIFT-COLOR_GRADIENTS_SHR);
-		if (invertShade) {
-			c = COLOR_GRADIENTS_SIZE - 1 - c;
-			c -= 16;
-			CLAMP(c, 0, COLOR_GRADIENTS_SIZE - 1);
-		} else {
-			CLAMP(c, 4, COLOR_GRADIENTS_SIZE - 4);
-		}
-		screenElements[i].c = c;
+
+		CLAMP(c, 0, COLOR_GRADIENTS_SIZE - 1);
+		screenElements[i].c = shadeMap[c];
 		++normal;
 	}
 }
@@ -549,7 +546,7 @@ void renderObject3D(Object3D *obj, Camera *cam, Light **lights, int lightsNum)
 		if (mesh->renderType & MESH_OPTION_RENDER_SOFT)
 		{
 			if (mesh->renderType & MESH_OPTION_ENABLE_LIGHTING) {
-				calculateVertexLighting(mesh, mesh->renderType & MESH_OPTION_INV_GOURAUD);
+				calculateVertexLighting(mesh);
 			}
 			if (mesh->renderType & MESH_OPTION_ENABLE_ENVMAP) {
 				calculateVertexEnvmapTC(mesh);

@@ -34,6 +34,8 @@ static unsigned char *gourGradBmps;
 static bool semisoftGouraud = false;
 static uint32 softPixc = CEL_BLEND_OPAQUE;
 
+static uint8* shadeMap = NULL;
+
 typedef struct Edge
 {
 	int x;
@@ -1308,6 +1310,40 @@ void setRenderSoftPixc(uint32 pixc)
 	softPixc = pixc;
 }
 
+void updateRenderSoftShademap(uint8* shadeMapSrc)
+{
+	int i;
+	for (i = 0; i < COLOR_GRADIENTS_SIZE; ++i) {
+		shadeMap[i] = shadeMapSrc[i];
+	}
+}
+
+uint8* getRenderSoftShademap()
+{
+	return shadeMap;
+}
+
+void initDefaultShadeMaps()
+{
+	int i;
+	for (i=0; i<COLOR_GRADIENTS_SIZE; ++i) {
+		int c = i;
+		CLAMP(c, 4, COLOR_GRADIENTS_SIZE - 4);
+		shadeMap[i] = c;
+	}
+}
+
+void initInvertedShadeMaps()
+{
+	int i;
+	for (i=0; i<COLOR_GRADIENTS_SIZE; ++i) {
+		int c = COLOR_GRADIENTS_SIZE - 1 - i;
+		c -= 16;
+		CLAMP(c, 0, COLOR_GRADIENTS_SIZE - 1);
+		shadeMap[i] = c;
+	}
+}
+
 static void initSoftBuffer()
 {
 	softBuffer.bpp = 16;
@@ -1325,7 +1361,9 @@ static void initSoftEngineArrays()
 	leftEdge = (Edge*)AllocMem(SCREEN_HEIGHT * sizeof(Edge), MEMTYPE_ANY);
 	rightEdge = (Edge*)AllocMem(SCREEN_HEIGHT * sizeof(Edge), MEMTYPE_ANY);
 	divTab = (int32*)AllocMem(DIV_TAB_SIZE * sizeof(int32), MEMTYPE_ANY);
+	shadeMap = (uint8*)AllocMem(COLOR_GRADIENTS_SIZE, MEMTYPE_ANY);
 
+	initDefaultShadeMaps();
 	initDivs();
 }
 
