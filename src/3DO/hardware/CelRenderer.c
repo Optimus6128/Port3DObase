@@ -23,6 +23,7 @@ typedef struct CelRenderInfo
 	bool xor;				// does XOR instead of ADD or SUB
 	bool sub;				// does SUB instead of ADD
 	bool useav;				// if true useav for extra pixel math funcs (switch between add, sub, clamp, etc..) else use avbits for 5bit source2 if asked
+	bool dualPmode;
 	bool pmvFromCCB;
 	bool pdvFromCCB;
 	bool pmvFromAmvbits;
@@ -75,8 +76,15 @@ static int getCelWoffset(CCB* cel)
 }
 
 
-static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 color, CelRenderInfo *info)
+static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint32 colorInfo, CelRenderInfo *info)
 {
+	uint16 color = colorInfo & 65535;
+	uint16 amvbits = colorInfo >> 16;
+
+	if (info->dualPmode) {
+		info = &info[color >> 15];	// P-Mode selector
+	}
+
 	if (info->opaque) {
 		if (!(color == 0 && info->transparentRGB0)) {
 			*vramDst = color;
@@ -107,6 +115,10 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 col
 			g1 = (((src1 >> 5) & 31) * pmv) / pdv;
 			b1 = ((src1 & 31) * pmv) / pdv;
 		} else {
+			if (info->pmvFromAmvbits) {
+				// NOTE: Oooof! At this point we have color. AMV bits are before the decoding (e.g. color index and not final 15bpp color after palette translation).
+				// Can't do this now without changing a lot of things. Or I could store AMV in the 32bit color and extract them for use in here.
+			}
 			// Unoptimized and repeated hack (will improve later)
 
 			const int pmvBitsR = (color >> 10) & 31;
@@ -538,7 +550,7 @@ static bool pointInsideQuad(int x, int y, CelPoint* p0, CelPoint* p1, CelPoint* 
 			((y - p3->y) * (p0->x - p3->x) - (x - p3->x) * (p0->y - p3->y) >= 0);
 }
 
-static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint16 color, uint16* vramDst, CelRenderInfo *info)
+static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, uint32 colorInfo, uint16* vramDst, CelRenderInfo *info)
 {
 	int x, y;
 
@@ -571,7 +583,7 @@ static void splatTexel(CelPoint *p0, CelPoint *p1, CelPoint *p2, CelPoint *p3, u
 		for (x = xMin; x < xMax; ++x) {
 			if (pointInsideQuad(x,y, p0,p1,p2,p3)) {
 				const int offset = VRAM_OFS(x, y);
-				pixelProcessorRender(vramDst + offset, stencilBuffer + offset, color, info);
+				pixelProcessorRender(vramDst + offset, stencilBuffer + offset, colorInfo, info);
 			}
 		}
 	}
@@ -586,8 +598,9 @@ static void renderCelGridTexels(uint16* vramDst, int width, int height, int orde
 
 	for (y=0; y<height; ++y) {
 		for (x = 0; x < width; ++x) {
-			if (!(celGridSrc->colorInfo & DISCARD_PIXEL)) {
-				uint16 color = celGridSrc->colorInfo & 65535;
+			uint32 colorInfo = celGridSrc->colorInfo;
+			if (!(colorInfo & DISCARD_PIXEL)) {
+				uint16 color = colorInfo & 65535;
 				if (!(color == 0 && info->opaque && info->transparentRGB0)) {
 					CelPoint* p0 = &celGridSrc[0];
 					CelPoint* p1 = &celGridSrc[1];
@@ -596,17 +609,17 @@ static void renderCelGridTexels(uint16* vramDst, int width, int height, int orde
 
 					if (!mariaFill) {
 						if (order & ORDER_CW) {
-							splatTexel(p0, p1, p3, p2, color, vramDst, info);
+							splatTexel(p0, p1, p3, p2, colorInfo, vramDst, info);
 						}
 						if (order & ORDER_CCW) {
-							splatTexel(p2, p3, p1, p0, color, vramDst, info);
+							splatTexel(p2, p3, p1, p0, colorInfo, vramDst, info);
 						}
 					} else {
 						const int xp = p0->x;
 						const int yp = p0->y;
 						if (xp >= 0 && xp < SCREEN_W && yp >= 0 && yp < SCREEN_H) {
 							const int offset = VRAM_OFS(xp, yp);
-							pixelProcessorRender(vramDst + offset, stencilBuffer + offset, color, info);
+							pixelProcessorRender(vramDst + offset, stencilBuffer + offset, colorInfo, info);
 						}
 					}
 				}
@@ -761,9 +774,8 @@ static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 					if (xp >= 0 && xp < SCREEN_W) {
 						const uint32 colorInfo = bitmapLinePtr[x];
 						if (!(colorInfo & DISCARD_PIXEL)) {
-							const uint16 color = colorInfo & 65535;
 							const int offset = VRAM_OFS(xp, yp);
-							pixelProcessorRender(vramDst + offset, stencilBuffer + offset, color, info);
+							pixelProcessorRender(vramDst + offset, stencilBuffer + offset, colorInfo, info);
 						}
 					}
 				}
@@ -824,6 +836,8 @@ static CelRenderInfo* setupCelRenderInfo(CCB* cel)
 	const uint32 flags = cel->ccb_Flags;
 
 	const uint32 pOver = flags & CCB_POVER_MASK;
+
+	info[0].dualPmode = false;
 	switch(pOver) {
 		case PMODE_ZERO:
 			decodePIXCinfo(&info[0], flags, p0);
@@ -839,6 +853,7 @@ static CelRenderInfo* setupCelRenderInfo(CCB* cel)
 			if (p0 == p1) {
 				decodePIXCinfo(&info[0], flags, p0);
 			} else {
+				info[0].dualPmode = true;
 				decodePIXCinfo(&info[0], flags, p0);
 				decodePIXCinfo(&info[1], flags, p1);
 			}
