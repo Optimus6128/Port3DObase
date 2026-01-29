@@ -41,7 +41,8 @@ static int selectedObj = 0;
 
 static bool envmapTest = false;
 
-static bool methodTwo = true;
+static bool pmvGouraudMethod = true;
+static bool cyclePmvGouraudRGB = true;
 
  
 static Object3D *initMeshObject(int meshgenId, const MeshgenParams params, int optionsFlags, Texture *tex)
@@ -136,7 +137,7 @@ static void inputScript()
 	}
 }
 
-uint8 SHADE_TABLE[32] = {
+uint8 PMV_GOURAUD_SHADE_TAB[32] = {
     (PPMPC_MF_1 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
     (PPMPC_MF_2 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
     (PPMPC_MF_3 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
@@ -173,27 +174,32 @@ uint8 SHADE_TABLE[32] = {
 	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT
 };
 
-static void test123(int t)
+static void testPmvGouraud(int t)
 {
-	static uint16 oof16[32];
+	static uint16 gouraudPmvShades[32];
 
 	int i;
 	for (i=0; i<32; ++i) {
-		int tr = (SinF16(t<<16) >> 1) + (1 << 15);
-		int tg = (SinF16(t<<17) >> 1) + (1 << 15);
-		int tb = (SinF16(t<<18) >> 1) + (1 << 15);
-		int r = (i * tr) >> 16;
-		int g = (i * tg) >> 16;
-		int b = (i * tb) >> 16;
+		if (cyclePmvGouraudRGB) {
+			int tr = (SinF16(t << 16) >> 1) + (1 << 15);
+			int tg = (SinF16(t << 17) >> 1) + (1 << 15);
+			int tb = (SinF16(t << 18) >> 1) + (1 << 15);
+			int r = (i * tr) >> 16;
+			int g = (i * tg) >> 16;
+			int b = (i * tb) >> 16;
 
-		CLAMP(r, 4, 31);
-		CLAMP(g, 4, 31);
-		CLAMP(b, 4, 31);
+			CLAMP(r, 4, 31);
+			CLAMP(g, 4, 31);
+			CLAMP(b, 4, 31);
 
-		oof16[i] = (SHADE_TABLE[r] << 10) | (SHADE_TABLE[g] << 5) | SHADE_TABLE[b];
+			gouraudPmvShades[i] = (PMV_GOURAUD_SHADE_TAB[r] << 10) | (PMV_GOURAUD_SHADE_TAB[g] << 5) | PMV_GOURAUD_SHADE_TAB[b];
+		} else {
+			int c = PMV_GOURAUD_SHADE_TAB[i];
+			gouraudPmvShades[i] = (c << 10) | (c << 5) | c;
+		}
 	}
 
-	updateGouraudColorShades(32, oof16);
+	updateGouraudColorShades(32, gouraudPmvShades);
 }
 
 void effectMeshGouraudCelInit()
@@ -227,8 +233,8 @@ void effectMeshGouraudCelInit()
 		setRenderSoftMethod(RENDER_SOFT_METHOD_GOURAUD);
 	}
 
-	if (methodTwo) {
-		test123(0);
+	if (pmvGouraudMethod) {
+		testPmvGouraud(0);
 	} else {
 		initInvertedShadeMaps();
 	}
@@ -243,12 +249,9 @@ static void scriptRenderObj(int posX, int posY, int posZ, int t, Object3D *obj)
 	if (obj == NULL) return;
 
 	if (renderTestIndex == RENDER_TEST_GOURAUD_TEXTURE) {
-		if (methodTwo) {
+		if (pmvGouraudMethod) {
 			softPixC = PPMPC_1S_CFBD | PPMPC_MS_PDC | PPMPC_2S_0 | PPMPC_2D_2;
 		} else {
-			//softPixC = CEL_BLEND_ADDITIVE;
-			//softPixC = CEL_BLEND_AVERAGE;
-			//softPixC = CEL_BLEND_SUBTRACT;
 			softPixC = CEL_BLEND_SUBTRACT_INV;
 		}
 	}
@@ -269,8 +272,8 @@ void effectMeshGouraudCelRun()
 
 	inputScript();
 
-	if (methodTwo) {
-		test123(t);
+	if (pmvGouraudMethod) {
+		testPmvGouraud(t);
 	}
 
 	if (renderTestIndex & RENDER_TEST_TEXTURE) {

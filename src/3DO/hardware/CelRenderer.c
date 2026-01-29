@@ -23,6 +23,9 @@ typedef struct CelRenderInfo
 	bool xor;				// does XOR instead of ADD or SUB
 	bool sub;				// does SUB instead of ADD
 	bool useav;				// if true useav for extra pixel math funcs (switch between add, sub, clamp, etc..) else use avbits for 5bit source2 if asked
+	bool pmvFromCCB;
+	bool pdvFromCCB;
+	bool pmvFromAmvbits;
 	bool needsFrameBuffer;	// if at least one of the two sources are framebuffer
 	int source1;
 	int source2;
@@ -84,22 +87,53 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 col
 		uint16 src1, src2;
 		bool addSrc2 = false;
 
-		const int pmv = info->pmv;
-		const int pdv = info->pdv;
 		const int dv2 = info->dv2;
 		const int avBits = info->avbits;
 		const bool doXor = info->xor;
 		const bool doSub = info->sub;
 
+		int pdv = info->pdv;
+
 		if (info->source1 == PPMPC_1S_PDC) {
 			src1 = color;
-		} else {
+		} else {	// PPMPC_1S_CFBD
 			src1 = *vramDst;
 		}
 
-		r1 = (((src1 >> 10) & 31) * pmv) / pdv;
-		g1 = (((src1 >> 5) & 31) * pmv) / pdv;
-		b1 = ((src1 & 31) * pmv) / pdv;
+		if (info->pmvFromCCB) {
+			const int pmv = info->pmv;
+
+			r1 = (((src1 >> 10) & 31) * pmv) / pdv;
+			g1 = (((src1 >> 5) & 31) * pmv) / pdv;
+			b1 = ((src1 & 31) * pmv) / pdv;
+		} else {
+			// Unoptimized and repeated hack (will improve later)
+
+			const int pmvBitsR = (color >> 10) & 31;
+			const int pmvBitsG = (color >> 5) & 31;
+			const int pmvBitsB = color & 31;
+			const int pmvR = (pmvBitsR >> 2) + 1;
+			const int pmvG = (pmvBitsG >> 2) + 1;
+			const int pmvB = (pmvBitsB >> 2) + 1;
+
+			if (info->pdvFromCCB) {
+				int pdvR = 1 << (pmvBitsR & 3);
+				int pdvG = 1 << (pmvBitsG & 3);
+				int pdvB = 1 << (pmvBitsB & 3);
+
+				if (pdvR == 0) pdvR = 16;
+				if (pdvG == 0) pdvG = 16;
+				if (pdvB == 0) pdvB = 16;
+
+				r1 = (((src1 >> 10) & 31) * pmvR) / pdvR;
+				g1 = (((src1 >> 5) & 31) * pmvG) / pdvG;
+				b1 = ((src1 & 31) * pmvB) / pdvB;
+			} else {
+				r1 = (((src1 >> 10) & 31) * pmvR) / pdv;
+				g1 = (((src1 >> 5) & 31) * pmvG) / pdv;
+				b1 = ((src1 & 31) * pmvB) / pdv;
+			}
+		}
 
 		if (r1 > 31) r1 = 31;
 		if (g1 > 31) g1 = 31;
@@ -759,9 +793,19 @@ static void decodePIXCinfo(CelRenderInfo *info, uint32 flags, uint32 pixc)
 
 	info->needsFrameBuffer = (info->source1 == PPMPC_1S_CFBD) | (info->source2 == PPMPC_2S_CFBD);
 
-	info->pmv = ((pixc & PPMPC_MF_MASK) >> PPMPC_MF_SHIFT) + 1;
-	info->pdv = 1 << (((((pixc & PPMPC_SF_MASK) >> PPMPC_SF_SHIFT) - 1) & 3) + 1);
-	info->dv2 = pixc & PPMPC_2D_MASK;	// will be shift right
+	info->pmvFromCCB = !(flags & PPMPC_MS_MASK);
+	if (info->pmvFromCCB) {
+		info->pmv = ((pixc & PPMPC_MF_MASK) >> PPMPC_MF_SHIFT) + 1;
+		info->pdv = 1 << (((((pixc & PPMPC_SF_MASK) >> PPMPC_SF_SHIFT) - 1) & 3) + 1);
+	} else {	// Definitelly PMV not from PIXC value on CCB but from incoming color (PDC=Pixel Decoder)
+		info->pmvFromAmvbits = (flags & PPMPC_MS_PIN);	// Maybe PMV from AMV bits instead of PDC?
+		info->pdvFromCCB = (flags & PPMPC_MS_PDC);	// PMV and PDV both from PDC (incoming color)
+		if (!info->pdvFromCCB) {
+			info->pdv = 1 << (((((pixc & PPMPC_SF_MASK) >> PPMPC_SF_SHIFT) - 1) & 3) + 1);
+		}
+		// If so, later on the pixel processor we will update the PMV and/or PDV per pixel from texture
+	}
+	info->dv2 = pixc & PPMPC_2D_MASK;	// will be used as shift right (PPMPC_2D_1 = 0, PPMPC_2D_2 = 1 (PPMPC_2D_MASK))
 	info->avbits = (pixc & PPMPC_AV_MASK) >> PPMPC_AV_SHIFT;
 
 	info->sub = false;
