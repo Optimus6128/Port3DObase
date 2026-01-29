@@ -121,9 +121,9 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint16 col
 				int pdvG = 1 << (pmvBitsG & 3);
 				int pdvB = 1 << (pmvBitsB & 3);
 
-				if (pdvR == 0) pdvR = 16;
-				if (pdvG == 0) pdvG = 16;
-				if (pdvB == 0) pdvB = 16;
+				if (pdvR == 1) pdvR = 16;
+				if (pdvG == 1) pdvG = 16;
+				if (pdvB == 1) pdvB = 16;
 
 				r1 = (((src1 >> 10) & 31) * pmvR) / pdvR;
 				g1 = (((src1 >> 5) & 31) * pmvG) / pdvG;
@@ -793,7 +793,7 @@ static void decodePIXCinfo(CelRenderInfo *info, uint32 flags, uint32 pixc)
 
 	info->needsFrameBuffer = (info->source1 == PPMPC_1S_CFBD) | (info->source2 == PPMPC_2S_CFBD);
 
-	info->pmvFromCCB = !(pixc & PPMPC_MS_MASK);
+	info->pmvFromCCB = (pixc & PPMPC_MS_MASK) == 0;
 	if (info->pmvFromCCB) {
 		info->pmv = ((pixc & PPMPC_MF_MASK) >> PPMPC_MF_SHIFT) + 1;
 		info->pdv = 1 << (((((pixc & PPMPC_SF_MASK) >> PPMPC_SF_SHIFT) - 1) & 3) + 1);
