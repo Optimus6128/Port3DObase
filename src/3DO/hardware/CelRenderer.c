@@ -793,13 +793,13 @@ static void decodePIXCinfo(CelRenderInfo *info, uint32 flags, uint32 pixc)
 
 	info->needsFrameBuffer = (info->source1 == PPMPC_1S_CFBD) | (info->source2 == PPMPC_2S_CFBD);
 
-	info->pmvFromCCB = !(flags & PPMPC_MS_MASK);
+	info->pmvFromCCB = !(pixc & PPMPC_MS_MASK);
 	if (info->pmvFromCCB) {
 		info->pmv = ((pixc & PPMPC_MF_MASK) >> PPMPC_MF_SHIFT) + 1;
 		info->pdv = 1 << (((((pixc & PPMPC_SF_MASK) >> PPMPC_SF_SHIFT) - 1) & 3) + 1);
 	} else {	// Definitelly PMV not from PIXC value on CCB but from incoming color (PDC=Pixel Decoder)
-		info->pmvFromAmvbits = (flags & PPMPC_MS_PIN);	// Maybe PMV from AMV bits instead of PDC?
-		info->pdvFromCCB = (flags & PPMPC_MS_PDC);	// PMV and PDV both from PDC (incoming color)
+		info->pmvFromAmvbits = (pixc & PPMPC_MS_PIN);	// Maybe PMV from AMV bits instead of PDC?
+		info->pdvFromCCB = (pixc & PPMPC_MS_PDC);	// PMV and PDV both from PDC (incoming color)
 		if (!info->pdvFromCCB) {
 			info->pdv = 1 << (((((pixc & PPMPC_SF_MASK) >> PPMPC_SF_SHIFT) - 1) & 3) + 1);
 		}
