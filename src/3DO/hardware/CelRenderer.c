@@ -28,6 +28,7 @@ typedef struct CelRenderInfo
 	bool pdvFromCCB;
 	bool pmvFromAmvbits;
 	bool needsFrameBuffer;	// if at least one of the two sources are framebuffer
+	int sourceBpp;
 	int source1;
 	int source2;
 	int avbits;
@@ -78,11 +79,11 @@ static int getCelWoffset(CCB* cel)
 
 static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint32 colorInfo, CelRenderInfo *info)
 {
-	uint16 color = colorInfo & 65535;
+	uint16 color = colorInfo & 32767;
 	uint16 amvbits = colorInfo >> 16;
 
 	if (info->dualPmode) {
-		info = &info[color >> 15];	// P-Mode selector
+		info = &info[(colorInfo & 32768) >> 15];	// P-Mode selector
 	}
 
 	if (info->opaque) {
@@ -115,36 +116,39 @@ static void pixelProcessorRender(uint16* vramDst, uint32* stencilDst, uint32 col
 			g1 = (((src1 >> 5) & 31) * pmv) / pdv;
 			b1 = ((src1 & 31) * pmv) / pdv;
 		} else {
+			int pmvR, pmvG, pmvB;
+			int pdvR, pdvG, pdvB;
+
 			if (info->pmvFromAmvbits) {
-				// NOTE: Oooof! At this point we have color. AMV bits are before the decoding (e.g. color index and not final 15bpp color after palette translation).
-				// Can't do this now without changing a lot of things. Or I could store AMV in the 32bit color and extract them for use in here.
-			}
-			// Unoptimized and repeated hack (will improve later)
-
-			const int pmvBitsR = (color >> 10) & 31;
-			const int pmvBitsG = (color >> 5) & 31;
-			const int pmvBitsB = color & 31;
-			const int pmvR = (pmvBitsR >> 2) + 1;
-			const int pmvG = (pmvBitsG >> 2) + 1;
-			const int pmvB = (pmvBitsB >> 2) + 1;
-
-			if (info->pdvFromCCB) {
-				int pdvR = 1 << (pmvBitsR & 3);
-				int pdvG = 1 << (pmvBitsG & 3);
-				int pdvB = 1 << (pmvBitsB & 3);
-
-				if (pdvR == 1) pdvR = 16;
-				if (pdvG == 1) pdvG = 16;
-				if (pdvB == 1) pdvB = 16;
-
-				r1 = (((src1 >> 10) & 31) * pmvR) / pdvR;
-				g1 = (((src1 >> 5) & 31) * pmvG) / pdvG;
-				b1 = ((src1 & 31) * pmvB) / pdvB;
+				if (info->sourceBpp==8) {
+					pmvR = pmvG = pmvB = ((colorInfo >> 21) & 7) + 1;
+				} else {	// 16bpp
+				}
+				pdvR = pdvG = pdvB = pdv;
 			} else {
-				r1 = (((src1 >> 10) & 31) * pmvR) / pdv;
-				g1 = (((src1 >> 5) & 31) * pmvG) / pdv;
-				b1 = ((src1 & 31) * pmvB) / pdv;
+				const int pmvBitsR = (color >> 10) & 31;
+				const int pmvBitsG = (color >> 5) & 31;
+				const int pmvBitsB = color & 31;
+
+				pmvR = (pmvBitsR >> 2) + 1;
+				pmvG = (pmvBitsG >> 2) + 1;
+				pmvB = (pmvBitsB >> 2) + 1;
+
+				if (info->pdvFromCCB) {
+					pdvR = 1 << (pmvBitsR & 3);
+					pdvG = 1 << (pmvBitsG & 3);
+					pdvB = 1 << (pmvBitsB & 3);
+
+					if (pdvR == 1) pdvR = 16;
+					if (pdvG == 1) pdvG = 16;
+					if (pdvB == 1) pdvB = 16;
+				} else {
+					pdvR = pdvG = pdvB = pdv;
+				}
 			}
+			r1 = (((src1 >> 10) & 31) * pmvR) / pdvR;
+			g1 = (((src1 >> 5) & 31) * pmvG) / pdvG;
+			b1 = ((src1 & 31) * pmvB) / pdvB;
 		}
 
 		if (r1 > 31) r1 = 31;
@@ -387,9 +391,10 @@ static void unpackLine(uint8 *src, int width, int bpp)
 
 #define RRRGGGBB_TO_C16(c) ((((c) >> 5) << 12) | ((((c) >> 2) & 7) << 7) | (((c) & 3) << 3))
 
-static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, bool packed, bool lrform, uint32* dst)
+static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, bool packed, bool lrform, bool needsAmvBits, uint32* dst)
 {
 	int wordLength = (width * bpp + 31) >> 5;
+	uint32* dstPtr = dst;
 
 	if (lrform) {
 		wordLength *= 2;
@@ -397,9 +402,9 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 			const uint32 c = *src++;
 			const uint16 c0 = c & 65535;
 			const uint16 c1 = c >> 16;
-			*dst = c0;
-			*(dst+width) = c1;
-			++dst;
+			*dstPtr = c0;
+			*(dstPtr+width) = c1;
+			++dstPtr;
 		}
 	} else {
 		if (packed) {
@@ -419,11 +424,11 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 					const uint16 c3 = c >> 24;
 
 					// need another map to raw rrrgggbb
-					*dst = RRRGGGBB_TO_C16(c0);
-					*(dst + 1) = RRRGGGBB_TO_C16(c1);
-					*(dst + 2) = RRRGGGBB_TO_C16(c2);
-					*(dst + 3) = RRRGGGBB_TO_C16(c3);
-					dst += 4;
+					*dstPtr = RRRGGGBB_TO_C16(c0);
+					*(dstPtr + 1) = RRRGGGBB_TO_C16(c1);
+					*(dstPtr + 2) = RRRGGGBB_TO_C16(c2);
+					*(dstPtr + 3) = RRRGGGBB_TO_C16(c3);
+					dstPtr += 4;
 
 					break;
 				}
@@ -432,8 +437,8 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 				{
 					const uint16 c0 = c & 65535;
 					const uint16 c1 = c >> 16;
-					*dst++ = c0;
-					*dst++ = c1;
+					*dstPtr++ = c0;
+					*dstPtr++ = c1;
 					break;
 				}
 
@@ -450,79 +455,90 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 				switch (bpp) {
 
 				case 1:
-					*dst = pal[(c >> 7) & 1];
-					*(dst + 1) = pal[(c >> 6) & 1];
-					*(dst + 2) = pal[(c >> 5) & 1];
-					*(dst + 3) = pal[(c >> 4) & 1];
-					*(dst + 4) = pal[(c >> 3) & 1];
-					*(dst + 5) = pal[(c >> 2) & 1];
-					*(dst + 6) = pal[(c >> 1) & 1];
-					*(dst + 7) = pal[c & 1];
-					*(dst + 8) = pal[(c >> 15) & 1];
-					*(dst + 9) = pal[(c >> 14) & 1];
-					*(dst + 10) = pal[(c >> 13) & 1];
-					*(dst + 11) = pal[(c >> 12) & 1];
-					*(dst + 12) = pal[(c >> 11) & 1];
-					*(dst + 13) = pal[(c >> 10) & 1];
-					*(dst + 14) = pal[(c >> 9) & 1];
-					*(dst + 15) = pal[(c >> 8) & 1];
-					*(dst + 16) = pal[(c >> 23) & 1];
-					*(dst + 17) = pal[(c >> 22) & 1];
-					*(dst + 18) = pal[(c >> 21) & 1];
-					*(dst + 19) = pal[(c >> 20) & 1];
-					*(dst + 20) = pal[(c >> 19) & 1];
-					*(dst + 21) = pal[(c >> 18) & 1];
-					*(dst + 22) = pal[(c >> 17) & 1];
-					*(dst + 23) = pal[(c >> 16) & 1];
-					*(dst + 24) = pal[(c >> 31) & 1];
-					*(dst + 25) = pal[(c >> 30) & 1];
-					*(dst + 26) = pal[(c >> 29) & 1];
-					*(dst + 27) = pal[(c >> 28) & 1];
-					*(dst + 28) = pal[(c >> 27) & 1];
-					*(dst + 29) = pal[(c >> 26) & 1];
-					*(dst + 30) = pal[(c >> 25) & 1];
-					*(dst + 31) = pal[(c >> 24) & 1];
-					dst += 32;
+					*dstPtr = pal[(c >> 7) & 1];
+					*(dstPtr + 1) = pal[(c >> 6) & 1];
+					*(dstPtr + 2) = pal[(c >> 5) & 1];
+					*(dstPtr + 3) = pal[(c >> 4) & 1];
+					*(dstPtr + 4) = pal[(c >> 3) & 1];
+					*(dstPtr + 5) = pal[(c >> 2) & 1];
+					*(dstPtr + 6) = pal[(c >> 1) & 1];
+					*(dstPtr + 7) = pal[c & 1];
+					*(dstPtr + 8) = pal[(c >> 15) & 1];
+					*(dstPtr + 9) = pal[(c >> 14) & 1];
+					*(dstPtr + 10) = pal[(c >> 13) & 1];
+					*(dstPtr + 11) = pal[(c >> 12) & 1];
+					*(dstPtr + 12) = pal[(c >> 11) & 1];
+					*(dstPtr + 13) = pal[(c >> 10) & 1];
+					*(dstPtr + 14) = pal[(c >> 9) & 1];
+					*(dstPtr + 15) = pal[(c >> 8) & 1];
+					*(dstPtr + 16) = pal[(c >> 23) & 1];
+					*(dstPtr + 17) = pal[(c >> 22) & 1];
+					*(dstPtr + 18) = pal[(c >> 21) & 1];
+					*(dstPtr + 19) = pal[(c >> 20) & 1];
+					*(dstPtr + 20) = pal[(c >> 19) & 1];
+					*(dstPtr + 21) = pal[(c >> 18) & 1];
+					*(dstPtr + 22) = pal[(c >> 17) & 1];
+					*(dstPtr + 23) = pal[(c >> 16) & 1];
+					*(dstPtr + 24) = pal[(c >> 31) & 1];
+					*(dstPtr + 25) = pal[(c >> 30) & 1];
+					*(dstPtr + 26) = pal[(c >> 29) & 1];
+					*(dstPtr + 27) = pal[(c >> 28) & 1];
+					*(dstPtr + 28) = pal[(c >> 27) & 1];
+					*(dstPtr + 29) = pal[(c >> 26) & 1];
+					*(dstPtr + 30) = pal[(c >> 25) & 1];
+					*(dstPtr + 31) = pal[(c >> 24) & 1];
+					dstPtr += 32;
 					break;
 
 				case 2:
-					*dst = pal[(c >> 6) & 3];
-					*(dst + 1) = pal[(c >> 4) & 3];
-					*(dst + 2) = pal[(c >> 2) & 3];
-					*(dst + 3) = pal[c & 3];
-					*(dst + 4) = pal[(c >> 14) & 3];
-					*(dst + 5) = pal[(c >> 12) & 3];
-					*(dst + 6) = pal[(c >> 10) & 3];
-					*(dst + 7) = pal[(c >> 8) & 3];
-					*(dst + 8) = pal[(c >> 22) & 3];
-					*(dst + 9) = pal[(c >> 20) & 3];
-					*(dst + 10) = pal[(c >> 18) & 3];
-					*(dst + 11) = pal[(c >> 16) & 3];
-					*(dst + 12) = pal[(c >> 30) & 3];
-					*(dst + 13) = pal[(c >> 28) & 3];
-					*(dst + 14) = pal[(c >> 26) & 3];
-					*(dst + 15) = pal[(c >> 24) & 3];
-					dst += 16;
+					*dstPtr = pal[(c >> 6) & 3];
+					*(dstPtr + 1) = pal[(c >> 4) & 3];
+					*(dstPtr + 2) = pal[(c >> 2) & 3];
+					*(dstPtr + 3) = pal[c & 3];
+					*(dstPtr + 4) = pal[(c >> 14) & 3];
+					*(dstPtr + 5) = pal[(c >> 12) & 3];
+					*(dstPtr + 6) = pal[(c >> 10) & 3];
+					*(dstPtr + 7) = pal[(c >> 8) & 3];
+					*(dstPtr + 8) = pal[(c >> 22) & 3];
+					*(dstPtr + 9) = pal[(c >> 20) & 3];
+					*(dstPtr + 10) = pal[(c >> 18) & 3];
+					*(dstPtr + 11) = pal[(c >> 16) & 3];
+					*(dstPtr + 12) = pal[(c >> 30) & 3];
+					*(dstPtr + 13) = pal[(c >> 28) & 3];
+					*(dstPtr + 14) = pal[(c >> 26) & 3];
+					*(dstPtr + 15) = pal[(c >> 24) & 3];
+					dstPtr += 16;
 					break;
 
 				case 4:
-					*dst = pal[(c >> 4) & 15];
-					*(dst + 1) = pal[c & 15];
-					*(dst + 2) = pal[(c >> 12) & 15];
-					*(dst + 3) = pal[(c >> 8) & 15];
-					*(dst + 4) = pal[(c >> 20) & 15];
-					*(dst + 5) = pal[(c >> 16) & 15];
-					*(dst + 6) = pal[(c >> 28) & 15];
-					*(dst + 7) = pal[(c >> 24) & 15];
-					dst += 8;
+					*dstPtr = pal[(c >> 4) & 15];
+					*(dstPtr + 1) = pal[c & 15];
+					*(dstPtr + 2) = pal[(c >> 12) & 15];
+					*(dstPtr + 3) = pal[(c >> 8) & 15];
+					*(dstPtr + 4) = pal[(c >> 20) & 15];
+					*(dstPtr + 5) = pal[(c >> 16) & 15];
+					*(dstPtr + 6) = pal[(c >> 28) & 15];
+					*(dstPtr + 7) = pal[(c >> 24) & 15];
+					dstPtr += 8;
 				break;
 
 				case 8:
-					*dst = pal[c & 31];
-					*(dst + 1) = pal[(c >> 8) & 31];
-					*(dst + 2) = pal[(c >> 16) & 31];
-					*(dst + 3) = pal[(c >> 24) & 31];
-					dst += 4;
+					if (!needsAmvBits) {
+						*dstPtr = pal[c & 31];
+						*(dstPtr + 1) = pal[(c >> 8) & 31];
+						*(dstPtr + 2) = pal[(c >> 16) & 31];
+						*(dstPtr + 3) = pal[(c >> 24) & 31];
+					} else {
+						uint32 col = c & 255; *dstPtr = (col << 16) | pal[col & 31];
+						col = (c >> 8) & 255; *(dstPtr + 1) = (col << 16) | pal[col & 31];
+						col = (c >> 16) & 255; *(dstPtr + 2) = (col << 16) | pal[col & 31];
+						col = (c >> 24) & 255; *(dstPtr + 3) = (col << 16) | pal[col & 31];
+					}
+					dstPtr += 4;
+					break;
+
+				case 16:
+					// For future 16bit AMV bits
 					break;
 
 				default:
@@ -533,10 +549,10 @@ static void decodeLine(int width, int bpp, uint32* src, uint16* pal, bool raw, b
 
 		// Complete the transparent pixel markings (oof!)
 		if (packed) {
-			uint32* dst = bitmapLine;
 			uint32* dstTransparentInfo = unpackedPixelExtraInfo;
+			dstPtr = dst;
 			do {
-				*dst++ |= *dstTransparentInfo++;
+				*dstPtr++ |= *dstTransparentInfo++;
 			} while (--width > 0);
 		}
 	}
@@ -600,7 +616,7 @@ static void renderCelGridTexels(uint16* vramDst, int width, int height, int orde
 		for (x = 0; x < width; ++x) {
 			uint32 colorInfo = celGridSrc->colorInfo;
 			if (!(colorInfo & DISCARD_PIXEL)) {
-				uint16 color = colorInfo & 65535;
+				uint16 color = colorInfo & 32767;
 				if (!(color == 0 && info->opaque && info->transparentRGB0)) {
 					CelPoint* p0 = &celGridSrc[0];
 					CelPoint* p1 = &celGridSrc[1];
@@ -646,11 +662,12 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 
 	const int width = GET_CEL_WIDTH(cel);
 	int height = GET_CEL_HEIGHT(cel);
-	const int bpp = getCelBpp(cel);
+	const int bpp = info->sourceBpp;
 
 	const bool raw = cel->ccb_PRE0 & PRE0_LINEAR;
 	const bool packed = cel->ccb_Flags & CCB_PACKED;
 	const bool lrform = cel->ccb_PRE1 & PRE1_LRFORM;
+	const bool needsAmvBits = info->pmvFromAmvbits;
 
 	int posX, posY;
 	int hdx = cel->ccb_HDX;
@@ -691,7 +708,7 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	posY = cel->ccb_YPos;
 	for (y = 0; y < height+1; ++y) {
 		uint32* bitmapLinePtr = bitmapLine;
-		if (y < height) decodeLine(width, bpp, src, pal, raw, packed, lrform, bitmapLine);
+		if (y < height) decodeLine(width, bpp, src, pal, raw, packed, lrform, needsAmvBits, bitmapLine);
 
 		if (packed) {
 			woffset = getWoffsetFromPackedData(src, bpp);
@@ -733,11 +750,12 @@ static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	const int posY = cel->ccb_YPos >> 16;
 	const int width = GET_CEL_WIDTH(cel);
 	int height = GET_CEL_HEIGHT(cel);
-	const int bpp = getCelBpp(cel);
+	const int bpp = info->sourceBpp;
 
 	const bool raw = cel->ccb_PRE0 & PRE0_LINEAR;
 	const bool packed = cel->ccb_Flags & CCB_PACKED;
 	const bool lrform = cel->ccb_PRE1 & PRE1_LRFORM;
+	const bool needsAmvBits = info->pmvFromAmvbits;
 
 	uint32* src = (uint32*)cel->ccb_SourcePtr;
 	uint16* pal = (uint16*)cel->ccb_PLUTPtr;
@@ -760,7 +778,7 @@ static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	for (y = 0; y < height; y+=n) {
 		uint32* bitmapLinePtr = bitmapLine;
 
-		decodeLine(width, bpp, src, pal, raw, packed, lrform, bitmapLine);
+		decodeLine(width, bpp, src, pal, raw, packed, lrform, needsAmvBits, bitmapLine);
 
 		if (packed) {
 			woffset = getWoffsetFromPackedData(src, bpp);
@@ -786,8 +804,11 @@ static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	}
 }
 
-static void decodePIXCinfo(CelRenderInfo *info, uint32 flags, uint32 pixc)
+static void decodePIXCinfo(CelRenderInfo *info, CCB *cel, uint32 pixc)
 {
+	const uint32 flags = cel->ccb_Flags;
+
+	info->sourceBpp = getCelBpp(cel);
 	info->transparentRGB0 = !(flags & CCB_BGND);
 	info->mariaRender = flags & CCB_MARIA;
 
@@ -833,29 +854,28 @@ static CelRenderInfo* setupCelRenderInfo(CCB* cel)
 	const uint32 pixc = cel->ccb_PIXC;
 	const uint32 p1 = (pixc >> 16) & 65535;
 	const uint32 p0 = pixc & 65535;
-	const uint32 flags = cel->ccb_Flags;
 
-	const uint32 pOver = flags & CCB_POVER_MASK;
+	const uint32 pOver = cel->ccb_Flags & CCB_POVER_MASK;
 
 	info[0].dualPmode = false;
 	switch(pOver) {
 		case PMODE_ZERO:
-			decodePIXCinfo(&info[0], flags, p0);
+			decodePIXCinfo(&info[0], cel, p0);
 		break;
 
 		case PMODE_ONE:
-			decodePIXCinfo(&info[0], flags, p1);
+			decodePIXCinfo(&info[0], cel, p1);
 		break;
 
 		case PMODE_PDC:
 		default:
 			// If both are the same, use the same anyway
 			if (p0 == p1) {
-				decodePIXCinfo(&info[0], flags, p0);
+				decodePIXCinfo(&info[0], cel, p0);
 			} else {
 				info[0].dualPmode = true;
-				decodePIXCinfo(&info[0], flags, p0);
-				decodePIXCinfo(&info[1], flags, p1);
+				decodePIXCinfo(&info[0], cel, p0);
+				decodePIXCinfo(&info[1], cel, p1);
 			}
 		break;
 	}
