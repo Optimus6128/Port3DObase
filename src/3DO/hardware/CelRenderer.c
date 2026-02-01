@@ -68,8 +68,7 @@ static int getCelWoffset(CCB* cel)
 	int woffset;
 	if (bpp < 8) {
 		woffset = (value & PRE1_WOFFSET8_MASK) >> PRE1_WOFFSET8_SHIFT;
-	}
-	else {
+	} else {
 		woffset = (value & PRE1_WOFFSET10_MASK) >> PRE1_WOFFSET10_SHIFT;
 	}
 
@@ -288,8 +287,7 @@ static void unpackLine(uint8 *src, int width, int bpp)
 						dstBitsPos += 4;
 						*dstTransparentInfo++ = 0;
 					} while (--count != 0);
-				}
-				else {
+				} else {
 					uint8 value = 0;
 					uint32 transp = DISCARD_PIXEL;	// if PACK_TRANSPARENT
 					if (command == PACK_REPEAT) {
@@ -662,6 +660,7 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 
 	const int width = GET_CEL_WIDTH(cel);
 	int height = GET_CEL_HEIGHT(cel);
+	const int skipX = GET_CEL_SKIPX(cel);
 	const int bpp = info->sourceBpp;
 
 	const bool raw = cel->ccb_PRE0 & PRE0_LINEAR;
@@ -707,7 +706,6 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	posX = cel->ccb_XPos;
 	posY = cel->ccb_YPos;
 	for (y = 0; y < height+1; ++y) {
-		uint32* bitmapLinePtr = bitmapLine;
 		if (y < height) decodeLine(width, bpp, src, pal, raw, packed, lrform, needsAmvBits, bitmapLine);
 
 		if (packed) {
@@ -717,10 +715,11 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 		for (i = 0; i < n; ++i) {
 			int pposX = posX << 4;
 			int pposY = posY << 4;
-			for (x = 0; x < width; ++x) {
+			uint32* bitmapLinePtr = &bitmapLine[i * width];
+			for (x = skipX; x < width; ++x) {
 				celGridDst->x = pposX >> 20;
 				celGridDst->y = pposY >> 20;
-				celGridDst->colorInfo = *bitmapLinePtr++;
+				celGridDst->colorInfo = bitmapLinePtr[x];
 				++celGridDst;
 
 				pposX += hdx;
@@ -739,7 +738,7 @@ static void renderCelPolygon(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 		src += woffset;
 	}
 
-	renderCelGridTexels(vramDst, width, height, order, info);
+	renderCelGridTexels(vramDst, width - skipX, height, order, info);
 }
 
 static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
@@ -750,6 +749,7 @@ static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 	const int posY = cel->ccb_YPos >> 16;
 	const int width = GET_CEL_WIDTH(cel);
 	int height = GET_CEL_HEIGHT(cel);
+	const int skipX = GET_CEL_SKIPX(cel);
 	const int bpp = info->sourceBpp;
 
 	const bool raw = cel->ccb_PRE0 & PRE0_LINEAR;
@@ -787,10 +787,10 @@ static void renderCelSprite(CCB* cel, uint16* vramDst, CelRenderInfo *info)
 		for (i = 0; i < n; ++i) {
 			const int yp = posY + y + i;
 			if (yp >= 0 && yp < SCREEN_H) {
-				for (x = 0; x < width; ++x) {
-					const int xp = posX + x;
+				for (x = skipX; x < width; ++x) {
+					const int xp = posX + x - skipX;
 					if (xp >= 0 && xp < SCREEN_W) {
-						const uint32 colorInfo = bitmapLinePtr[x];
+						uint32 colorInfo = bitmapLinePtr[x];
 						if (!(colorInfo & DISCARD_PIXEL)) {
 							const int offset = VRAM_OFS(xp, yp);
 							pixelProcessorRender(vramDst + offset, stencilBuffer + offset, colorInfo, info);
