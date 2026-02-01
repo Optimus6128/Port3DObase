@@ -12,6 +12,7 @@
 
 #define GET_CEL_WIDTH(cel) ((cel->ccb_PRE1 & PRE1_TLHPCNT_MASK) + PRE1_TLHPCNT_PREFETCH)
 #define GET_CEL_HEIGHT(cel) (((cel->ccb_PRE0 & PRE0_VCNT_MASK) >> PRE0_VCNT_SHIFT) + PRE0_VCNT_PREFETCH)
+#define GET_CEL_SKIPX(cel) ((cel->ccb_PRE0 & PRE0_SKIPX_MASK) >> PRE0_SKIPX_SHIFT)
 
 #define VRAM_OFS(x,y) ((y) >> 1) * SCREEN_W * 2 + ((y) & 1) + ((x) << 1)
 
