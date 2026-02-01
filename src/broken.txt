@@ -1,25 +1,16 @@
-Experiments Mesh
-----------------
-
-* Software 3D
-	+ Few of it is very broken. But it's mostly software rendering on CEL, both for 8bpp and 16bpp CEL bitmaps.
-	  However one of the modes might have been trying to do gouraud with CEL gradients combined. Or, recently I have been altering the software rendering and may have broke something.
-	  NOTE: This is broken even on 3DO, I was messing up with the software renderer, probably not a problem on the 3DO CEL emulation
-
 Experiments Packed
 ------------------
 
 * Packed Rain
-	+ Unpacked now works, packed displays nothing
+	+ Unpacked still doesn't work, packed displays nothing
 
 * Packed Wave
 	+ Junk displayed (also crashes on release)
 
-Experiments Sprites
--------------------
+Notes:
 
-* Paralax Tests
-	+ grass is still broken (packed texture and some offset?)
-
-* AMV bits
-	+ Obviously not implemented yet on the CEL renderer. Sprite moves but no antialiased blends around the pixels, just solid. Didn't bother as I rarely use AMV bits in my own projects.
+* Somehow I fixed packed grass (don't know what I did, some other proper fix that also fixed this?)
+* Only thing that might need fixing must be the unpacker. It mostly works but fails on rain and sprite wave and produces junk pixels in 3Dentro (Tunnel blend blob and maybe center pixels on radial rays in 2nd part). Could be special case with when pixels to repeat or read are very small like 1 or 2. Or something with the termination.
+* Radial sprites (which also use the packed) work now but sometimes crash in VS with no obvious reason. Debugger is all over the place. Could be some hidden memory out of bounds or pointer/value not initialized. Some things behave different between debug or release so maybe zero values that are not zeroed in debug.
+* Few stuff seems to suffer from performance but maybe it's expected.
+* What I wrote in Bizarro Untergrund where I had to endian flip some loaded 16bpp CEL. But now I realize the whole implementation here is wrong. The way I might be rendering might not be what is in 3DO vram byte by byte. My renderer from 16bit values back to SDL should flip things instead or read R,G,B with oppposite shifts. Then I have to go back and not flip endian at LoadCel or other. It's ok for ports but not if we want to be consistent for emulation in the future.
