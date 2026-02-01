@@ -20,16 +20,18 @@
 
 #define GRID_SIZE 16
 
+enum { OBJ_SOFT, OBJ_HARD, OBJ_NUM };
+
 static Viewer *viewer;
 static Light *light;
 
-static Object3D *loadedObj;
-static Mesh *loadedMesh;
+static Object3D *loadedObj[OBJ_NUM];
+static Mesh *loadedMesh[OBJ_NUM];
 
 static Mesh *gridMesh;
 static Object3D *gridObj;
 
-static Texture *flatTex;
+static Texture *vaseTex;
 static Texture *gridTex;
 
 static uint16 gridPal[32];
@@ -55,42 +57,55 @@ static void shadeGrid()
 	}
 }
 
-void effectMeshGouraudRGBlightsInit()
+static void prepareMeshObjects()
 {
-	MeshgenParams gridParams = makeMeshgenGridParams(2048, GRID_SIZE);
-	
-	setPalGradient(0,31, 1,3,7, 31,27,23, gridPal);
-	setPalGradient(0,31, 23,17,11, 27,23,19, vasePal);
+	int i;
 
-	flatTex = initGenTexture(32,32, 8, vasePal, 1, TEXGEN_NOISE, NULL);
-	gridTex = initGenTexture(16,16, 8, gridPal, 1, TEXGEN_GRID, NULL);
+	MeshgenParams gridParams = makeMeshgenGridParams(2048, GRID_SIZE);
+
+	setPalGradient(0, 31, 1, 3, 7, 31, 27, 23, gridPal);
+	setPalGradient(0, 31, 23, 17, 11, 27, 23, 19, vasePal);
+
+	vaseTex = initGenTexture(32, 32, 8, vasePal, 1, TEXGEN_NOISE, NULL);
+	gridTex = initGenTexture(16, 16, 8, gridPal, 1, TEXGEN_GRID, NULL);
 
 	gridMesh = initGenMesh(MESH_GRID, gridParams, MESH_OPTIONS_DEFAULT | MESH_OPTION_NO_POLYSORT, gridTex);
-	
-	loadedMesh = loadMesh("data/vase.plg", MESH_LOAD_SKIP_LINES, MESH_OPTIONS_DEFAULT | MESH_OPTION_ENABLE_LIGHTING, flatTex);
-	loadedObj = initObject3D(loadedMesh);
-
 	gridObj = initObject3D(gridMesh);
 	shadeGrid();
 
 	setObject3Dpos(gridObj, 0, 0, 0);
 	setObject3Drot(gridObj, 0, 0, 0);
+	addObjectToWorld(gridObj, 0, false, myWorld);
 
-	setObject3Dpos(loadedObj, 0, 320, 0);
-	setObject3Drot(loadedObj, 0, 0, 0);
+	for (i = 0; i < OBJ_NUM; ++i) {
+		int meshOptions = MESH_OPTIONS_DEFAULT | MESH_OPTION_ENABLE_LIGHTING;
+		if (i == OBJ_SOFT) meshOptions |= MESH_OPTION_RENDER_SOFT8;
+		loadedMesh[i] = loadMesh("data/vase.plg", MESH_LOAD_SKIP_LINES, meshOptions, vaseTex);
+		loadedObj[i] = initObject3D(loadedMesh[i]);
 
+		setObject3Dpos(loadedObj[i], 0, 320, 0);
+		setObject3Drot(loadedObj[i], 0, 0, 0);
+
+		addObjectToWorld(loadedObj[i], 1, true, myWorld);
+	}
+}
+
+void effectMeshGouraudRGBlightsInit()
+{
 	viewer = createViewer(64,192,64, 176);
 	setViewerPos(viewer, 0,192,-1024);
 
 	light = createLight(true);
 
 	myWorld = initWorld(128, 1, 1);
-	
-	addObjectToWorld(gridObj, 0, false, myWorld);
+
+	prepareMeshObjects();
 
 	addCameraToWorld(viewer->camera, myWorld);
 	addLightToWorld(light, myWorld);
-	addObjectToWorld(loadedObj, 1, true, myWorld);
+
+	//setRenderSoftPixc(PPMPC_1S_CFBD | PPMPC_MS_PDC | PPMPC_2S_0 | PPMPC_2D_2);
+	setRenderSoftPixc(CEL_BLEND_AVERAGE);
 }
 
 static void inputScript(int dt)

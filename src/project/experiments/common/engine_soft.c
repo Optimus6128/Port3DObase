@@ -22,7 +22,7 @@
 #define DIV_TAB_SHIFT 12
 
 // Semisoft gouraud method
-#define MAX_SCANLINES 4096
+#define MAX_SCANLINES 32768
 static CCB **scanlineCel8;
 static CCB **currentScanlineCel8;
 
@@ -434,7 +434,7 @@ static void prepareEdgeListSemiGouraud(ScreenElement* e0, ScreenElement* e1)
 	int fx, fc;
 
 	int32* dvt = &divTab[DIV_TAB_SIZE / 2];
-	int repDiv;
+	int repDiv = 0;
 
 	// Assumes CCW
 	if (e0->y < e1->y) {
@@ -448,9 +448,12 @@ static void prepareEdgeListSemiGouraud(ScreenElement* e0, ScreenElement* e1)
 	x0 = e0->x; y0 = e0->y; c0 = e0->c;
 	x1 = e1->x; y1 = e1->y; c1 = e1->c;
 
-	if (y0 > SCREEN_HEIGHT - 1 || y1 < 0) return;
+	if (y0 > SCREEN_HEIGHT - 1 || y1 < 0 || y1 < y0) return;
 
-	repDiv = dvt[y1 - y0];
+	if ((y1 - y0) < DIV_TAB_SIZE / 2) {
+		repDiv = dvt[y1 - y0];
+	}
+
 	dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
 	dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
 
@@ -1268,11 +1271,13 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
 	}
 
 	if (mustUseSemisoftGouraud(ms)) {
-		CCB *lastScanlineCel = *(currentScanlineCel8 - 1);
-		lastScanlineCel->ccb_Flags |= CCB_LAST;
-		(*scanlineCel8)->ccb_PIXC = softPixc;
-		drawCels(*scanlineCel8);
-		lastScanlineCel->ccb_Flags &= ~CCB_LAST;
+		if (currentScanlineCel8 != scanlineCel8) {	// something added
+			CCB* lastScanlineCel = *(currentScanlineCel8 - 1);
+			lastScanlineCel->ccb_Flags |= CCB_LAST;
+			(*scanlineCel8)->ccb_PIXC = softPixc;
+			drawCels(*scanlineCel8);
+			lastScanlineCel->ccb_Flags &= ~CCB_LAST;
+		}
 	} else {
 		softBuffer.cel->ccb_PIXC = softPixc;
 		drawCels(softBuffer.cel);
