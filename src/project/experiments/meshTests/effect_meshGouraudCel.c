@@ -41,8 +41,8 @@ static int selectedObj = 0;
 
 static bool envmapTest = false;
 
-static bool pmvGouraudMethod = true;
-static bool cyclePmvGouraudRGB = true;
+static bool pmvGouraudMethod = false;
+static bool cyclePmvGouraudRGB = false;
 
  
 static Object3D *initMeshObject(int meshgenId, const MeshgenParams params, int optionsFlags, Texture *tex)

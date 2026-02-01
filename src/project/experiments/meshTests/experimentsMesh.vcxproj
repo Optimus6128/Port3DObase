@@ -49,6 +49,7 @@
     <ClCompile Include="..\common\tools.c" />
     <ClCompile Include="effect_meshFli.c" />
     <ClCompile Include="effect_meshGouraudCel.c" />
+    <ClCompile Include="effect_meshGouraudRGBlights.c" />
     <ClCompile Include="effect_meshGrid.c" />
     <ClCompile Include="effect_meshHeightmap.c" />
     <ClCompile Include="effect_meshLoad.c" />

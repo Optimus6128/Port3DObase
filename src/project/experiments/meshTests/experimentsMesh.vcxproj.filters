@@ -155,6 +155,9 @@
     <ClCompile Include="effect_meshGouraudCel.c">
       <Filter>project</Filter>
     </ClCompile>
+    <ClCompile Include="effect_meshGouraudRGBlights.c">
+      <Filter>project</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\main.h" />
