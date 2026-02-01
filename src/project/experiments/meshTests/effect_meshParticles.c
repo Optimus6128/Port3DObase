@@ -115,6 +115,8 @@ void effectMeshParticlesInit()
 	addLightToWorld(light, myWorld);
 
 	initParticles();
+
+	setBillboardScale(512);
 }
 
 static void animateParticles(int dt)

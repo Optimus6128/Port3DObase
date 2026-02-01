@@ -39,6 +39,7 @@ static int screenWidth = SCREEN_WIDTH;
 static int screenHeight = SCREEN_HEIGHT;
 
 static bool polygonOrderTestCPU = true;
+static int billboardScale = 256;
 
 static void(*mapcelFunc)(CCB*, Point*, unsigned char);
 
@@ -280,7 +281,7 @@ static void prepareTransformedMeshBillboardCELs(Mesh *mesh)
 			cel->ccb_XPos = (se->x - (cel->ccb_Width >> 1)) << 16;
 			cel->ccb_YPos = (se->y - (cel->ccb_Height >> 1)) << 16;
 
-			scale = ((256 << PROJ_SHR) * recZ[se->z]) >> (REC_FPSHR - 8);
+			scale = ((billboardScale << PROJ_SHR) * recZ[se->z]) >> (REC_FPSHR - 8);
 			cel->ccb_HDX = scale << 4;
 			cel->ccb_VDY = scale;
 
@@ -669,6 +670,12 @@ Light *createLight(bool isDirectional)
 void setGlobalLightDir(int vx, int vy, int vz)
 {
 	setLightDir(globalLight, vx, vy, vz);
+}
+
+void setBillboardScale(int scale)
+{
+	CLAMP(scale, 16, 4096);	// an average default value is 256, clamp through some min max that makes sense we won't exceed
+	billboardScale = scale;
 }
 
 static void initEngineVertexTables()

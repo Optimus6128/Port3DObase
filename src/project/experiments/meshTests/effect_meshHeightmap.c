@@ -23,8 +23,8 @@
 #define HEIGHTMAP_SIZE (HEIGHTMAP_WIDTH * HEIGHTMAP_HEIGHT)
 #define HEIGHTMAP_GRADIENTS 32
 
-#define VOXEL_WIDTH 16
-#define VOXEL_HEIGHT 16
+#define VOXEL_WIDTH 4
+#define VOXEL_HEIGHT 4
 #define VOXEL_SIZE (VOXEL_WIDTH * VOXEL_HEIGHT)
 
 static Viewer *viewer;
@@ -116,6 +116,8 @@ void effectMeshHeightmapInit()
 	addLightToWorld(light, myWorld);
 
 	initHeightmap();
+
+	setBillboardScale(1024);
 }
 
 static void inputScript(int dt)

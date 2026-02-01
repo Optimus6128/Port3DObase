@@ -62,6 +62,7 @@ void renderObject3D(Object3D *obj, Camera *cam, Light **lights, int lightsNum);
 Light *createLight(bool isDirectional);
 void setLightPos(Light *light, int px, int py, int pz);
 void setLightDir(Light *light, int vx, int vy, int vz);
+void setBillboardScale(int scale);
 
 void setGlobalLightDir(int vx, int vy, int vz);
 
