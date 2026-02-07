@@ -125,7 +125,7 @@ static void genGridTexture(int width, int height, int rangeMin, int rangeMax, un
 	}
 }
 
-static void genBlobTexture(int width, int height, int rangeMin, int rangeMax, unsigned char *imgData)
+static void genBlobTexture(int width, int height, unsigned char *imgData)
 {
 	int x, y;
 	int xc, yc;
@@ -136,6 +136,23 @@ static void genBlobTexture(int width, int height, int rangeMin, int rangeMax, un
 		for (x=0; x<width; x++) {
 			xc = x - (width >> 1);
 			c = (xc * xc + yc * yc) << 1;
+			if (c > 31) c = 31;
+			*imgData++ = 31 - c;
+		}
+	}
+}
+
+static void genBlobTextureRadial(int width, int height, unsigned char *imgData)
+{
+	int x, y;
+	int xc, yc;
+	int c;
+
+	for (y=0; y<height; y++) {
+		yc = y - (height >> 1);
+		for (x=0; x<width; x++) {
+			xc = x - (width >> 1);
+			c = (xc * xc + yc * yc) << 0;
 			if (c > 31) c = 31;
 			*imgData++ = 31 - c;
 		}
@@ -159,7 +176,14 @@ void generateImage(int imggenId, ImggenParams *params, unsigned char *imgPtr)
 	switch(imggenId) {
 		case IMGGEN_BLOB:
 		{
-			genBlobTexture(width, height, rangeMin, rangeMax, imgPtr);
+			genBlobTexture(width, height, imgPtr);
+
+		}
+		break;
+
+		case IMGGEN_BLOB_RADIAL:
+		{
+			genBlobTextureRadial(width, height, imgPtr);
 
 		}
 		break;

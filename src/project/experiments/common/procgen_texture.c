@@ -174,6 +174,12 @@ static void genTexture(int texgenId, void *params, Texture *tex)
 		}
 		break;
 
+		case TEXGEN_BLOB_RADIAL:
+		{
+			generateImage(IMGGEN_BLOB_RADIAL, &paramsDefault, dst);
+		}
+		break;
+
 		case TEXGEN_CLOUDS:
 		{
 			ImggenParams paramsClouds = generateImageParamsCloud(width,height,1,31, 1,255,127,8,3);

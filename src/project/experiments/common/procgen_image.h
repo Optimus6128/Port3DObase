@@ -11,7 +11,7 @@ typedef struct ImggenParams
 	int iterations;
 } ImggenParams;
 
-enum { IMGGEN_BLOB, IMGGEN_GRID, IMGGEN_CLOUDS };
+enum { IMGGEN_BLOB, IMGGEN_BLOB_RADIAL, IMGGEN_GRID, IMGGEN_CLOUDS };
 
 void generateImage(int imggenId, ImggenParams *params, unsigned char *imgPtr);
 

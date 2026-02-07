@@ -749,7 +749,7 @@ Light *createLight(bool isDirectional)
 
 void setGlobalLightDirFromMovingLightAgainstObject(Light *light, Object3D *obj)
 {
-	setLightDir(globalLight, light->pos.x - obj->pos.x, light->pos.y - obj->pos.y, light->pos.z - obj->pos.z);
+	setLightDir(globalLight, obj->pos.x - light->pos.x, obj->pos.y - light->pos.y, obj->pos.z - light->pos.z);
 }
 
 void setGlobalLightDir(int vx, int vy, int vz)

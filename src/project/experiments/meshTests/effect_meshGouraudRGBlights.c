@@ -19,6 +19,7 @@
 
 
 #define GRID_SIZE 16
+#define NUM_LIGHTS 3
 
 enum { OBJ_SOFT, OBJ_HARD, OBJ_NUM };
 
@@ -31,11 +32,16 @@ static Mesh *loadedMesh[OBJ_NUM];
 static Mesh *gridMesh;
 static Object3D *gridObj;
 
+static Mesh *particlesMesh;
+static Object3D *particlesObj;
+
 static Texture *vaseTex;
 static Texture *gridTex;
+static Texture *blobTex;
 
 static uint16 gridPal[32];
 static uint16 vasePal[32];
+static uint16 blobPal[NUM_LIGHTS * 32];
 
 static World *myWorld;
 
@@ -84,6 +90,7 @@ static void prepareMeshObjects()
 	int i;
 
 	MeshgenParams gridParams = makeMeshgenGridParams(2048, GRID_SIZE);
+	MeshgenParams particlesParams = makeMeshgenParticlesParams(NUM_LIGHTS);
 
 	setPalGradient(0, 31, 1, 3, 7, 31, 27, 23, gridPal);
 	setPalGradient(0, 31, 23, 17, 11, 27, 23, 19, vasePal);
@@ -94,6 +101,21 @@ static void prepareMeshObjects()
 	gridMesh = initGenMesh(MESH_GRID, gridParams, MESH_OPTIONS_DEFAULT | MESH_OPTION_NO_POLYSORT, gridTex);
 	gridObj = initObject3D(gridMesh);
 	shadeGrid();
+
+	setPalGradient(0,31, 0,0,0, 31,7,7, &blobPal[0]);
+	setPalGradient(0,31, 0,0,0, 7,31,7, &blobPal[32]);
+	setPalGradient(0,31, 0,0,0, 7,7,31, &blobPal[64]);
+	blobTex = initGenTexture(32,32, 8, blobPal, 3, TEXGEN_BLOB_RADIAL, NULL);
+
+	particlesMesh = initGenMesh(MESH_PARTICLES, particlesParams, MESH_OPTION_RENDER_BILLBOARDS | MESH_OPTION_NO_POLYSORT, blobTex);
+	setMeshTranslucency(particlesMesh, true, true);
+	particlesObj = initObject3D(particlesMesh);
+
+	for (i = 0; i < NUM_LIGHTS; ++i) {
+		PolyData* poly = &particlesMesh->poly[i];
+		poly->palId = i;
+		particlesMesh->cel[i].ccb_PLUTPtr = (uint16*)&particlesMesh->tex->pal[poly->palId << 5];
+	}
 
 	setObject3Dpos(gridObj, 0, 0, 0);
 	setObject3Drot(gridObj, 0, 0, 0);
@@ -108,8 +130,10 @@ static void prepareMeshObjects()
 		setObject3Dpos(loadedObj[i], 0, 320, 0);
 		setObject3Drot(loadedObj[i], 0, 0, 0);
 
-		//addObjectToWorld(loadedObj[i], 1, true, myWorld);
+		if (i == OBJ_HARD) addObjectToWorld(loadedObj[i], 1, true, myWorld);
 	}
+
+	addObjectToWorld(particlesObj, 1, false, myWorld);
 }
 
 void effectMeshGouraudRGBlightsInit()
@@ -127,14 +151,21 @@ void effectMeshGouraudRGBlightsInit()
 	addLightToWorld(light, myWorld);
 
 	setRenderSoftPixc(PPMPC_1S_CFBD | PPMPC_MS_PDC | PPMPC_2S_0 | PPMPC_2D_2);
+
+	setBillboardScale(1024);
 }
 
-static void moveLights(int t)
+static void moveLights(int t, Vertex *v)
 {
-	int tt = t << 11;
-	light->pos.x = SinF16(tt) >> 4;
-	light->pos.y = 512 + (SinF16(2*tt) >> 5) + (CosF16(3*tt) >> 4);
-	light->pos.z = CosF16(tt) >> 4;
+	const int tt = t << 10;
+
+	light->pos.x = SinF16(tt) >> 7;
+	light->pos.y = 256 + (SinF16(2*tt) >> 10) + (CosF16(3*tt) >> 9);
+	light->pos.z = CosF16(tt) >> 7;
+
+	v->x = light->pos.x;
+	v->y = light->pos.y;
+	v->z = light->pos.z;
 
 	setGlobalLightDirFromMovingLightAgainstObject(light, loadedObj[1]);
 }
@@ -161,17 +192,17 @@ void effectMeshGouraudRGBlightsRun()
 	// I have commented out adding the vase objects to world as I didn't have much control on switching PmvGouraud and obviously lighting directions too.
 	// This is a manual hack, I could add control to the world engine, setting different pmvGouraud options and recalculate light for each object.
 	// I am trying to do the 3-pass solution for gouraud RGB lights
-	renderObject3D(loadedObj[1], viewer->camera, NULL, 0);
+	//renderObject3D(loadedObj[1], viewer->camera, NULL, 0);
 
-	moveLights(currTicks);
+	moveLights(currTicks, &particlesMesh->vertex[0]);
 	setPmvGouraud(thisCol, restCol, restCol);
 	renderObject3D(loadedObj[0], viewer->camera, NULL, 0);
 
-	moveLights(2*currTicks);
+	moveLights(2*currTicks, &particlesMesh->vertex[1]);
 	setPmvGouraud(restCol, thisCol, restCol);
 	renderObject3D(loadedObj[0], viewer->camera, NULL, 0);
 
-	moveLights(3*currTicks);
+	moveLights(3*currTicks, &particlesMesh->vertex[2]);
 	setPmvGouraud(restCol, restCol, thisCol);
 	renderObject3D(loadedObj[0], viewer->camera, NULL, 0);
 }
