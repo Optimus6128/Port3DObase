@@ -67,6 +67,7 @@ void setLightDir(Light *light, int vx, int vy, int vz);
 void setBillboardScale(int scale);
 
 void setGlobalLightDir(int vx, int vy, int vz);
+void setGlobalLightDirFromMovingLightAgainstObject(Light* light, Object3D* obj);
 
 void createRotationMatrixValues(int rotX, int rotY, int rotZ, int *rotVecs);
 

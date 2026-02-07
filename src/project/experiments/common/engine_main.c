@@ -736,10 +736,20 @@ Light *createLight(bool isDirectional)
 {
 	Light *light = (Light*)AllocMem(sizeof(Light), MEMTYPE_ANY);
 
-	setLightPos(light, 0,1024,0);
-	setLightDir(light, 0,-(1 << NORMAL_SHIFT), 0);
+	if (isDirectional) {
+		setLightPos(light, 0, 1024, 0);
+		setLightDir(light, 0, -(1 << NORMAL_SHIFT), 0);
+	} else {
+		setLightPos(light, 0, 0, 0);
+		setLightDir(light, 0, 0, 0);
+	}
 
 	return light;
+}
+
+void setGlobalLightDirFromMovingLightAgainstObject(Light *light, Object3D *obj)
+{
+	setLightDir(globalLight, light->pos.x - obj->pos.x, light->pos.y - obj->pos.y, light->pos.z - obj->pos.z);
 }
 
 void setGlobalLightDir(int vx, int vy, int vz)

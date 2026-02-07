@@ -40,27 +40,23 @@ static uint16 vasePal[32];
 static World *myWorld;
 
 
-static void setPmvGouraud(int r, int g, int b, bool test)
+static void setPmvGouraud(int r, int g, int b)
 {
 	static uint16 gouraudPmvShades[32];
 
 	int i;
 	for (i = 0; i < 32; ++i) {
-		int cr, cg, cb;
-		if (test) {
-			cr = (i * r) >> 5;
-			cg = (i * g) >> 5;
-			cb = (i * b) >> 5;
-		} else {
-			cr = cg = cb = i;
-			// Basically, an R=31, G=0, B=0 means that we only need R to affect the shade, so G and B below will be clamped to 31, always full
-			// Next pass will work on G and next on B, not affecting the other channels but all three passes will be accumulated for full RGB lighting from 3 sources
-			CLAMP_LEFT(cr, 31 - r);
-			CLAMP_LEFT(cg, 31 - g);
-			CLAMP_LEFT(cb, 31 - b);
-		}
+		int cr = i;
+		int cg = i;
+		int cb = i;
+		// Basically, an R=31, G=0, B=0 means that we only need R to affect the shade, so G and B below will be clamped to 31, always full
+		// Next pass will work on G and next on B, not affecting the other channels but all three passes will be accumulated for full RGB lighting from 3 sources
+		CLAMP_LEFT(cr, 31 - r);
+		CLAMP_LEFT(cg, 31 - g);
+		CLAMP_LEFT(cb, 31 - b);
 
 		gouraudPmvShades[i] = (PMV_GOURAUD_SHADE_TAB[cr] << 10) | (PMV_GOURAUD_SHADE_TAB[cg] << 5) | PMV_GOURAUD_SHADE_TAB[cb];
+		//gouraudPmvShades[i] = (PMV_GOURAUD_SHADE_SHINE_TAB[cr] << 10) | (PMV_GOURAUD_SHADE_SHINE_TAB[cg] << 5) | PMV_GOURAUD_SHADE_SHINE_TAB[cb];
 	}
 
 	updateGouraudColorShades(32, gouraudPmvShades);
@@ -121,7 +117,7 @@ void effectMeshGouraudRGBlightsInit()
 	viewer = createViewer(64,192,64, 176);
 	setViewerPos(viewer, 0,192,-1024);
 
-	light = createLight(true);
+	light = createLight(false);
 
 	myWorld = initWorld(128, 1, 1);
 
@@ -133,6 +129,16 @@ void effectMeshGouraudRGBlightsInit()
 	setRenderSoftPixc(PPMPC_1S_CFBD | PPMPC_MS_PDC | PPMPC_2S_0 | PPMPC_2D_2);
 }
 
+static void moveLights(int t)
+{
+	int tt = t << 11;
+	light->pos.x = SinF16(tt) >> 4;
+	light->pos.y = 512 + (SinF16(2*tt) >> 5) + (CosF16(3*tt) >> 4);
+	light->pos.z = CosF16(tt) >> 4;
+
+	setGlobalLightDirFromMovingLightAgainstObject(light, loadedObj[1]);
+}
+
 static void inputScript(int dt)
 {
 	viewerInputFPS(viewer, dt);
@@ -140,6 +146,9 @@ static void inputScript(int dt)
 
 void effectMeshGouraudRGBlightsRun()
 {
+	const int restCol = 0;
+	const int thisCol = 31;
+
 	static int prevTicks = 0;
 	int currTicks = getTicks();
 	int dt = currTicks - prevTicks;
@@ -154,12 +163,15 @@ void effectMeshGouraudRGBlightsRun()
 	// I am trying to do the 3-pass solution for gouraud RGB lights
 	renderObject3D(loadedObj[1], viewer->camera, NULL, 0);
 
-	setPmvGouraud(31, 0, 0, false);
+	moveLights(currTicks);
+	setPmvGouraud(thisCol, restCol, restCol);
 	renderObject3D(loadedObj[0], viewer->camera, NULL, 0);
 
-	setPmvGouraud(0, 31, 0, false);
+	moveLights(2*currTicks);
+	setPmvGouraud(restCol, thisCol, restCol);
 	renderObject3D(loadedObj[0], viewer->camera, NULL, 0);
 
-	setPmvGouraud(0, 0, 31, false);
+	moveLights(3*currTicks);
+	setPmvGouraud(restCol, restCol, thisCol);
 	renderObject3D(loadedObj[0], viewer->camera, NULL, 0);
 }
