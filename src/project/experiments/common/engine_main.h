@@ -25,6 +25,8 @@
 #define SHADE_TABLE_SIZE (1 << SHADE_TABLE_SHR)
 
 extern int shadeTable[SHADE_TABLE_SIZE];
+extern uint8 PMV_GOURAUD_SHADE_SHINE_TAB[32];
+extern uint8 PMV_GOURAUD_SHADE_TAB[32];
 
 
 typedef struct ScreenElement

@@ -13,6 +13,24 @@
 #include "mathutil.h"
 #include "tools.h"
 
+typedef struct GouraudScanlineCCB
+{
+	uint32 ccb_Flags;
+
+	struct GouraudScanlineCCB* ccb_NextPtr;
+	CelData* ccb_SourcePtr;
+	void* ccb_PLUTPtr;
+
+	Coord ccb_XPos;
+	Coord ccb_YPos;
+	int32  ccb_HDX;
+	int32  ccb_HDY;
+	int32  ccb_VDX;
+	int32  ccb_VDY;
+	uint32 ccb_PRE0;
+	uint32 ccb_PRE1;
+} GouraudScanlineCCB;
+
 
 //#define ASM_VRAMSET
 
@@ -22,9 +40,16 @@
 #define DIV_TAB_SHIFT 12
 
 // Semisoft gouraud method
-#define MAX_SCANLINES 32768
-static CCB **scanlineCel8;
-static CCB **currentScanlineCel8;
+// We had issues with memory, 32768 starting crashing. Cube, Vase, smooth object is from 1000 to 4000 maybe reach 8000? Maybe 16384 is ok? I also have a stopper.
+// But I also reduced crap I did with memory so maybe now ever 32768 is ok if not 65536. But might reduce it to 16384 at least
+// Update: Still crashing with 32768, used to not do it. I even reduced mem but still.
+// Should use a small number like 4096 or 8192 and then flush
+#define MAX_SCANLINES 8192
+
+static CCB* startingScanlineCelDummy;
+static GouraudScanlineCCB* scanlineCels;
+static GouraudScanlineCCB* currentScanlineCel;
+static int currentScanlineIndex = 0;
 
 #define GRADIENT_SHADES 32
 #define GRADIENT_LENGTH GRADIENT_SHADES
@@ -131,6 +156,25 @@ static void initDivs()
         divTab[i] = (1 << DIV_TAB_SHIFT) / ii;
     }
 }
+static GouraudScanlineCCB* createScanlineGouraudCels(int width, int height, int bpp, int type, int num)
+{
+	int i;
+	GouraudScanlineCCB* cels = (GouraudScanlineCCB*)AllocMem(num * sizeof(GouraudScanlineCCB), MEMTYPE_ANY);
+
+	startingScanlineCelDummy = createCel(GRADIENT_LENGTH, 1, 8, CEL_TYPE_CODED);
+
+	for (i = 0; i < num; ++i) {
+		memcpy(&cels[i], startingScanlineCelDummy, sizeof(GouraudScanlineCCB) - 8);
+		memcpy(&cels[i].ccb_PRE0, &startingScanlineCelDummy->ccb_PRE0, 8);
+	}
+
+	startingScanlineCelDummy->ccb_XPos = SCREEN_WIDTH << 16;	// outside of the screen to the right
+	startingScanlineCelDummy->ccb_SourcePtr = (CelData*)gourGradBmps;
+	startingScanlineCelDummy->ccb_Flags &= ~CCB_LAST;
+	startingScanlineCelDummy->ccb_NextPtr = (CCB*)cels;
+
+	return cels;
+}
 
 static void initSemiSoftGouraud()
 {
@@ -139,31 +183,28 @@ static void initSemiSoftGouraud()
 	int c0,c1,x;
 
 	gourGradBmps = (unsigned char*)AllocMem(GRADIENT_SHADES * GRADIENT_GROUP_SIZE, MEMTYPE_ANY);
-	scanlineCel8 = (CCB**)AllocMem(MAX_SCANLINES * sizeof(CCB*), MEMTYPE_ANY);
-	currentScanlineCel8 = scanlineCel8;
-
 	dst = gourGradBmps;
-	for (i=0; i<MAX_SCANLINES; ++i) {
-		scanlineCel8[i] = createCel(GRADIENT_LENGTH, 1, 8, CEL_TYPE_CODED);
-		if (i>0) {
-			linkCel(scanlineCel8[i-1], scanlineCel8[i]);
-			scanlineCel8[i]->ccb_Flags |= CCB_BGND;
-			scanlineCel8[i]->ccb_Flags &= ~(CCB_LDPLUT | CCB_LDPRS | CCB_LDPPMP);
-			memcpy(&scanlineCel8[i]->ccb_HDDX, &scanlineCel8[i]->ccb_PRE0, 8);
-		}
-	}
-
-	for (c0=0; c0<GRADIENT_SHADES; ++c0) {
-		for (c1=0; c1<GRADIENT_SHADES; ++c1) {
+	for (c0 = 0; c0 < GRADIENT_SHADES; ++c0) {
+		for (c1 = 0; c1 < GRADIENT_SHADES; ++c1) {
 			const int dc = ((c1 - c0) << FP_BASE) / GRADIENT_LENGTH;
 			int fc = INT_TO_FIXED(c0, FP_BASE);
-			for (x=0; x<GRADIENT_LENGTH; ++x) {
+			for (x = 0; x < GRADIENT_LENGTH; ++x) {
 				int c = FIXED_TO_INT(fc, FP_BASE);
 				CLAMP(c, 0, 31)
-				*dst++ = c;
+					* dst++ = c;
 				fc += dc;
 			}
 		}
+	}
+
+	scanlineCels = createScanlineGouraudCels(GRADIENT_LENGTH, 1, 8, CEL_TYPE_CODED, MAX_SCANLINES);
+	for (i=0; i<MAX_SCANLINES; ++i) {
+		if (i > 0) {
+			scanlineCels[i - 1].ccb_NextPtr = &scanlineCels[i];
+		}
+		scanlineCels[i].ccb_Flags |= CCB_BGND;
+		scanlineCels[i].ccb_Flags &= ~CCB_LAST;
+		scanlineCels[i].ccb_Flags &= ~(CCB_LDPLUT | CCB_LDPRS | CCB_LDPPMP);
 	}
 }
 
@@ -487,7 +528,7 @@ static void fillGouraudEdges8_SemiSoft(int y0, int y1)
 	Edge *re = &rightEdge[y0];
 
 	int y;
-	CCB *firstCel = *currentScanlineCel8;
+	//GouraudScanlineCCB *firstCel = currentScanlineCel;
 
 	for (y=y0; y<=y1; ++y) {
 		const int xl = le->x;
@@ -495,7 +536,10 @@ static void fillGouraudEdges8_SemiSoft(int y0, int y1)
 		int cr = re->c;
 		int length = re->x - xl;
 
-		CCB *cel = *currentScanlineCel8++;
+		GouraudScanlineCCB *cel = currentScanlineCel++;
+
+		if (currentScanlineIndex >= MAX_SCANLINES) return;	// fuck you I am not adding
+		currentScanlineIndex++;
 
 		cl = FIXED_TO_INT(cl, FP_BASE);
 		cr = FIXED_TO_INT(cr, FP_BASE);
@@ -514,8 +558,9 @@ static void fillGouraudEdges8_SemiSoft(int y0, int y1)
 		++le;
 		++re;
 	}
-	firstCel->ccb_PLUTPtr = (void*)gouraudColorShades;
-	firstCel->ccb_Flags |= CCB_LDPLUT;
+	//If we ever need different gouraud gradient colors again I will enable that, like for every triangle to point to different color shades, but now we point to the same at startingScanlineCelDummy
+	//firstCel->ccb_PLUTPtr = (void*)gouraudColorShades;
+	//firstCel->ccb_Flags |= CCB_LDPLUT;
 }
 
 static void fillGouraudEdges8(int y0, int y1)
@@ -1194,7 +1239,10 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 	const bool useSemisoftGouraud = mustUseSemisoftGouraud(ms);
 
 	if (useSemisoftGouraud) {
-		currentScanlineCel8 = scanlineCel8;
+		currentScanlineIndex = 0;
+		currentScanlineCel = scanlineCels;
+		startingScanlineCelDummy->ccb_PLUTPtr = (void*)gouraudColorShades;
+		startingScanlineCelDummy->ccb_PIXC = softPixc;
 		prepareEdgeList = prepareEdgeListSemiGouraud;
 	} else {
 		prepareAndPositionSoftBuffer(ms, elements);
@@ -1271,11 +1319,10 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
 	}
 
 	if (mustUseSemisoftGouraud(ms)) {
-		if (currentScanlineCel8 != scanlineCel8) {	// something added
-			CCB* lastScanlineCel = *(currentScanlineCel8 - 1);
+		if (currentScanlineCel != scanlineCels) {	// something added
+			GouraudScanlineCCB* lastScanlineCel = currentScanlineCel - 1;
 			lastScanlineCel->ccb_Flags |= CCB_LAST;
-			(*scanlineCel8)->ccb_PIXC = softPixc;
-			drawCels(*scanlineCel8);
+			drawCels(startingScanlineCelDummy);
 			lastScanlineCel->ccb_Flags &= ~CCB_LAST;
 		}
 	} else {

@@ -40,6 +40,32 @@ static uint16 vasePal[32];
 static World *myWorld;
 
 
+static void setPmvGouraud(int r, int g, int b, bool test)
+{
+	static uint16 gouraudPmvShades[32];
+
+	int i;
+	for (i = 0; i < 32; ++i) {
+		int cr, cg, cb;
+		if (test) {
+			cr = (i * r) >> 5;
+			cg = (i * g) >> 5;
+			cb = (i * b) >> 5;
+		} else {
+			cr = cg = cb = i;
+			// Basically, an R=31, G=0, B=0 means that we only need R to affect the shade, so G and B below will be clamped to 31, always full
+			// Next pass will work on G and next on B, not affecting the other channels but all three passes will be accumulated for full RGB lighting from 3 sources
+			CLAMP_LEFT(cr, 31 - r);
+			CLAMP_LEFT(cg, 31 - g);
+			CLAMP_LEFT(cb, 31 - b);
+		}
+
+		gouraudPmvShades[i] = (PMV_GOURAUD_SHADE_TAB[cr] << 10) | (PMV_GOURAUD_SHADE_TAB[cg] << 5) | PMV_GOURAUD_SHADE_TAB[cb];
+	}
+
+	updateGouraudColorShades(32, gouraudPmvShades);
+}
+
 static void shadeGrid()
 {
 	int x,y;
@@ -86,7 +112,7 @@ static void prepareMeshObjects()
 		setObject3Dpos(loadedObj[i], 0, 320, 0);
 		setObject3Drot(loadedObj[i], 0, 0, 0);
 
-		addObjectToWorld(loadedObj[i], 1, true, myWorld);
+		//addObjectToWorld(loadedObj[i], 1, true, myWorld);
 	}
 }
 
@@ -104,8 +130,7 @@ void effectMeshGouraudRGBlightsInit()
 	addCameraToWorld(viewer->camera, myWorld);
 	addLightToWorld(light, myWorld);
 
-	//setRenderSoftPixc(PPMPC_1S_CFBD | PPMPC_MS_PDC | PPMPC_2S_0 | PPMPC_2D_2);
-	setRenderSoftPixc(CEL_BLEND_AVERAGE);
+	setRenderSoftPixc(PPMPC_1S_CFBD | PPMPC_MS_PDC | PPMPC_2S_0 | PPMPC_2D_2);
 }
 
 static void inputScript(int dt)
@@ -123,4 +148,18 @@ void effectMeshGouraudRGBlightsRun()
 	inputScript(dt);
 
 	renderWorld(myWorld);
+
+	// I have commented out adding the vase objects to world as I didn't have much control on switching PmvGouraud and obviously lighting directions too.
+	// This is a manual hack, I could add control to the world engine, setting different pmvGouraud options and recalculate light for each object.
+	// I am trying to do the 3-pass solution for gouraud RGB lights
+	renderObject3D(loadedObj[1], viewer->camera, NULL, 0);
+
+	setPmvGouraud(31, 0, 0, false);
+	renderObject3D(loadedObj[0], viewer->camera, NULL, 0);
+
+	setPmvGouraud(0, 31, 0, false);
+	renderObject3D(loadedObj[0], viewer->camera, NULL, 0);
+
+	setPmvGouraud(0, 0, 31, false);
+	renderObject3D(loadedObj[0], viewer->camera, NULL, 0);
 }

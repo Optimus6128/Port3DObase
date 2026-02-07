@@ -41,7 +41,7 @@ static int selectedObj = 0;
 
 static bool envmapTest = false;
 
-static bool pmvGouraudMethod = false;
+static bool pmvGouraudMethod = true;
 static bool cyclePmvGouraudRGB = false;
 
  
@@ -137,43 +137,6 @@ static void inputScript()
 	}
 }
 
-uint8 PMV_GOURAUD_SHADE_TAB[32] = {
-    (PPMPC_MF_1 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_2 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_3 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_4 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_5 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_6 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_7 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_8 | PPMPC_SF_16) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_5 | PPMPC_SF_8) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_6 | PPMPC_SF_8) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_7 | PPMPC_SF_8) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_8 | PPMPC_SF_8) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_5 | PPMPC_SF_4) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_6 | PPMPC_SF_4) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_7 | PPMPC_SF_4) >> PPMPC_SF_SHIFT,
-    (PPMPC_MF_8 | PPMPC_SF_4) >> PPMPC_SF_SHIFT,
-
-	(PPMPC_MF_5 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_6 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_7 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT,
-	(PPMPC_MF_8 | PPMPC_SF_2) >> PPMPC_SF_SHIFT
-};
-
 static void testPmvGouraud(int t)
 {
 	static uint16 gouraudPmvShades[32];
@@ -192,9 +155,9 @@ static void testPmvGouraud(int t)
 			CLAMP(g, 4, 31);
 			CLAMP(b, 4, 31);
 
-			gouraudPmvShades[i] = (PMV_GOURAUD_SHADE_TAB[r] << 10) | (PMV_GOURAUD_SHADE_TAB[g] << 5) | PMV_GOURAUD_SHADE_TAB[b];
+			gouraudPmvShades[i] = (PMV_GOURAUD_SHADE_SHINE_TAB[r] << 10) | (PMV_GOURAUD_SHADE_SHINE_TAB[g] << 5) | PMV_GOURAUD_SHADE_SHINE_TAB[b];
 		} else {
-			int c = PMV_GOURAUD_SHADE_TAB[i];
+			int c = PMV_GOURAUD_SHADE_SHINE_TAB[i];
 			gouraudPmvShades[i] = (c << 10) | (c << 5) | c;
 		}
 	}
