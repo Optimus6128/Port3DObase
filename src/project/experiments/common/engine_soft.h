@@ -18,7 +18,7 @@
 #define RENDER_SOFT_METHOD_ENVMAP		(1 << 1)
 #define RENDER_SOFT_METHOD_LAST			(1 << 2)
 
-void initEngineSoft(bool usesSemisoftGouraud);
+void initEngineSoft(bool usesSemisoftGouraud, bool needsSoftBuffer);
 void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements);
 
 void setRenderSoftMethod(int method);

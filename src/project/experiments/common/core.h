@@ -62,6 +62,7 @@
 #define CORE_INIT_3D_ENGINE			(1 << 16)
 #define CORE_INIT_3D_ENGINE_SOFT	(1 << 17)
 #define CORE_INIT_SEMISOFT_GOURAUD	(1 << 18)
+#define CORE_INIT_NO_SOFTBUFFER		(1 << 19)
 
 #define CORE_DEBUG					(1 << 31)
 

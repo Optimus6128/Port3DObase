@@ -1427,7 +1427,7 @@ static void initSoftEngineArrays()
 	initDivs();
 }
 
-void initEngineSoft(bool usesSemisoftGouraud)
+void initEngineSoft(bool usesSemisoftGouraud, bool needsSoftBuffer)
 {
 	initSoftEngineArrays();
 
@@ -1441,7 +1441,7 @@ void initEngineSoft(bool usesSemisoftGouraud)
 
 	if (!gouraudColorShades) gouraudColorShades = crateColorShades(31,31,31, COLOR_GRADIENTS_SIZE, true);
 
-	initSoftBuffer();
+	if (needsSoftBuffer) initSoftBuffer();
 
 	// Bind something to avoid crash
 	bindGradient(lineColorShades[0]);

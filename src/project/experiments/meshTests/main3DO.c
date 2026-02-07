@@ -16,7 +16,8 @@
 	//const int effectIndex = EFFECT_MESH_SOFT;
 
 	if (effectIndex == EFFECT_MESH_SOFT || effectIndex == EFFECT_MESH_GOURAUD_CEL || effectIndex == EFFECT_MESH_GOURAUD_RGB_LIGHTS || effectIndex == EFFECT_MESH_WORLD) extraOpts |= CORE_INIT_3D_ENGINE_SOFT;
-	if (effectIndex == EFFECT_MESH_GOURAUD_CEL || effectIndex == EFFECT_MESH_GOURAUD_RGB_LIGHTS) extraOpts |= CORE_INIT_SEMISOFT_GOURAUD;
+	if (effectIndex == EFFECT_MESH_GOURAUD_CEL) extraOpts |= CORE_INIT_SEMISOFT_GOURAUD;	// Didn't disable SoftBuffer init because one of the tests were using the envmap (although disabled with a boolean now)
+	if (effectIndex == EFFECT_MESH_GOURAUD_RGB_LIGHTS) extraOpts |= (CORE_INIT_SEMISOFT_GOURAUD | CORE_INIT_NO_SOFTBUFFER); // If it's pure semigouraud passes, why waste memory by initing the softbuffer?
 
 	//if (effectIndex != EFFECT_MESH_PYRAMIDS) extraOpts |= (CORE_NO_VSYNC | CORE_VRAM_MAXBUFFERS);
 	//if (effectIndex != EFFECT_MESH_FLI) extraOpts &= ~CORE_VRAM_MAXBUFFERS;

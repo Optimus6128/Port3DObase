@@ -51,7 +51,7 @@ typedef struct Light
 	bool isDirectional;
 }Light;
 
-void initEngine(bool usesSoftEngine, bool usesSemisoftGouraud);
+void initEngine(bool usesSoftEngine, bool usesSemisoftGouraud, bool needsSoftBuffer);
 
 Object3D* initObject3D(Mesh *ms);
 
