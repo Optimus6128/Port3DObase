@@ -64,6 +64,7 @@ typedef struct Mesh
 	Texture *tex;
 
 	int renderType;
+	int maxLights;	// number of lights affecting this object (most will be 1, but set it for RGB semigouraud)
 }Mesh;
 
 typedef struct ElementsSize
@@ -91,6 +92,7 @@ void setMeshDottedDisplay(Mesh *ms, bool enable);
 void setMeshPolygonCPUbackfaceTest(Mesh *ms, bool enable);
 
 void setMeshTexture(Mesh *ms, Texture *tex);
+void setMeshMaxLights(Mesh* ms, int lightsNum);
 void setMeshPaletteIndex(Mesh *ms, int palIndex);
 
 void setAllPolyData(Mesh *ms, int numPoints, int textureId, int palId);

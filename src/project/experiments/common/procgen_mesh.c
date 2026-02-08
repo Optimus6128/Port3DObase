@@ -835,12 +835,7 @@ Mesh *initGenMesh(int meshgenId, const MeshgenParams params, int optionsFlags, T
 
 			resetAllCurrentPointers(ms);
 
-			for (i=0; i<particlesNum; ++i) {
-				const int x = getRand(-halfSize, halfSize);
-				const int y = getRand(0, 2 * halfSize);
-				const int z = getRand(-halfSize, halfSize);
-				addVertex(x, y, z);
-			}
+			memset(ms->vertex, 0, particlesNum * sizeof(Vertex));
 
 			setAllPolyData(ms, 4, 0, 0);
 

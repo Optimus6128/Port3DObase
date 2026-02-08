@@ -139,6 +139,28 @@ static uint16 *crateColorShades(int r, int g, int b, int numShades, bool absolut
 	return colorShades;
 }
 
+void setPmvSemisoftGouraud(int r, int g, int b)
+{
+	static uint16 gouraudPmvShades[32];
+
+	int i;
+	for (i = 0; i < 32; ++i) {
+		int cr = i;
+		int cg = i;
+		int cb = i;
+		// Basically, an R=31, G=0, B=0 means that we only need R to affect the shade, so G and B below will be clamped to 31, always full
+		// Next pass will work on G and next on B, not affecting the other channels but all three passes will be accumulated for full RGB lighting from 3 sources
+		CLAMP_LEFT(cr, 31 - r);
+		CLAMP_LEFT(cg, 31 - g);
+		CLAMP_LEFT(cb, 31 - b);
+
+		gouraudPmvShades[i] = (PMV_GOURAUD_SHADE_TAB[cr] << 10) | (PMV_GOURAUD_SHADE_TAB[cg] << 5) | PMV_GOURAUD_SHADE_TAB[cb];
+		//gouraudPmvShades[i] = (PMV_GOURAUD_SHADE_SHINE_TAB[cr] << 10) | (PMV_GOURAUD_SHADE_SHINE_TAB[cg] << 5) | PMV_GOURAUD_SHADE_SHINE_TAB[cb];
+	}
+
+	updateGouraudColorShades(32, gouraudPmvShades);
+}
+
 void updateGouraudColorShades(int numShades, uint16 *shades)
 {
 	int i;
@@ -1322,7 +1344,13 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
 		if (currentScanlineCel != scanlineCels) {	// something added
 			GouraudScanlineCCB* lastScanlineCel = currentScanlineCel - 1;
 			lastScanlineCel->ccb_Flags |= CCB_LAST;
-			drawCels(startingScanlineCelDummy);
+			if (ms->maxLights == 1) {
+				drawCels(startingScanlineCelDummy);
+			} else {	// hack for now RGB (but will also need to update the light normal calcs later on)
+				setPmvSemisoftGouraud(31, 0, 0); drawCels(startingScanlineCelDummy);
+				setPmvSemisoftGouraud(0, 31, 0); drawCels(startingScanlineCelDummy);
+				setPmvSemisoftGouraud(0, 0, 31); drawCels(startingScanlineCelDummy);
+			}
 			lastScanlineCel->ccb_Flags &= ~CCB_LAST;
 		}
 	} else {

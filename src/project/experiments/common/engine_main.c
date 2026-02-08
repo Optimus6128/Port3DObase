@@ -30,7 +30,7 @@ static Vertex *screenVertices;
 static ScreenElement *screenElements;
 static Vector3D *rotatedNormals;
 
-static Light *globalLight = NULL;
+static Light *globalLight[MAX_LIGHTS];
 static Vector3D rotatedGlobalLightVec;
 
 static int screenOffsetX = 0;
@@ -560,8 +560,8 @@ static void transformMesh(Object3D *obj, Camera *cam)
 	}
 	if (mesh->renderType & MESH_OPTION_ENABLE_LIGHTING) {
 		transposeMat3(rotMat);
-		normalizeVector3D(&globalLight->dir);
-		SoftMulVec3Mat33_F16((vec3f16*)&rotatedGlobalLightVec, (vec3f16*)&globalLight->dir, rotMat);
+		normalizeVector3D(&globalLight[0]->dir);
+		SoftMulVec3Mat33_F16((vec3f16*)&rotatedGlobalLightVec, (vec3f16*)&globalLight[0]->dir, rotMat);
 	}
 }
 
@@ -747,14 +747,14 @@ Light *createLight(bool isDirectional)
 	return light;
 }
 
-void setGlobalLightDirFromMovingLightAgainstObject(Light *light, Object3D *obj)
+void setGlobalLightDirFromPositionAgainstObject(Vector3D *pos, Object3D *obj, int index)
 {
-	setLightDir(globalLight, obj->pos.x - light->pos.x, obj->pos.y - light->pos.y, obj->pos.z - light->pos.z);
+	setLightDir(globalLight[index], obj->pos.x - pos->x, obj->pos.y - pos->y, obj->pos.z - pos->z);
 }
 
-void setGlobalLightDir(int vx, int vy, int vz)
+void setGlobalLightDir(int vx, int vy, int vz, int index)
 {
-	setLightDir(globalLight, vx, vy, vz);
+	setLightDir(globalLight[index], vx, vy, vz);
 }
 
 void setBillboardScale(int scale)
@@ -773,6 +773,8 @@ static void initEngineVertexTables()
 
 void initEngine(bool usesSoftEngine, bool usesSemisoftGouraud, bool needsSoftBuffer)
 {
+	int i;
+
 	initEngineLUTs();
 	initEngineVertexTables();
 
@@ -781,8 +783,10 @@ void initEngine(bool usesSoftEngine, bool usesSemisoftGouraud, bool needsSoftBuf
 	useCPUtestPolygonOrder(false);
 	useMapCelFunctionFast(true);
 
-	globalLight = createLight(true);
-	setGlobalLightDir(0,0,1);
+	for (i = 0; i < MAX_LIGHTS; ++i) {
+		globalLight[i] = (Light*)AllocMem(sizeof(Light), MEMTYPE_ANY);
+		setGlobalLightDir(0, 0, 1, i);
+	}
 
 	memset(zOrderList, 0, sizeof(zOrderListBucket) * Z_ORDER_SIZE);
 

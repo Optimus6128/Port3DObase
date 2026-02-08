@@ -378,7 +378,7 @@ void effectMeshWorldInit()
 	viewer = createViewer(64,192,64, 176);
 	setViewerPos(viewer, 0,96,-1024);
 
-	setGlobalLightDir(-3,-2,1);
+	setGlobalLightDir(-3,-2,1,0);
 
 	for (i=0; i<WORLDS_NUM; ++i) {
 		myWorld[i] = initMyWorld(i, viewer->camera);

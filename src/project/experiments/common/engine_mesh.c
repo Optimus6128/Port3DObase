@@ -112,6 +112,11 @@ void setMeshTexture(Mesh *ms, Texture *tex)
 	ms->tex = tex;
 }
 
+void setMeshMaxLights(Mesh* ms, int lightsNum)
+{
+	ms->maxLights = lightsNum;
+}
+
 void setMeshPaletteIndex(Mesh *ms, int palIndex)
 {
 	if (!(ms->renderType & MESH_OPTION_RENDER_SOFT)) {
@@ -348,6 +353,7 @@ Mesh* initMesh(ElementsSize *elSize, int renderType, Texture *tex)
 	ms->cel = NULL;
 	ms->vertexCol = NULL;
 	ms->vertexTC = NULL;
+	ms->maxLights = 1;
 
 	if (elSize) {
 		ms->verticesNum = elSize->verticesNum;

@@ -30,5 +30,6 @@ void updateRenderSoftShademap(uint8* shadeMapSrc);
 uint8* getRenderSoftShademap(void);
 
 void updateGouraudColorShades(int numShades, uint16* shades);
+void setPmvSemisoftGouraud(int r, int g, int b);
 
 #endif

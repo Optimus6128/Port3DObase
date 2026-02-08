@@ -8,6 +8,7 @@
 //#define USE_MAP_CEL_ASM
 
 #define MAX_VERTEX_ELEMENTS_NUM 4096
+#define MAX_LIGHTS 4
 
 #define PROJ_SHR 8
 
@@ -66,8 +67,8 @@ void setLightPos(Light *light, int px, int py, int pz);
 void setLightDir(Light *light, int vx, int vy, int vz);
 void setBillboardScale(int scale);
 
-void setGlobalLightDir(int vx, int vy, int vz);
-void setGlobalLightDirFromMovingLightAgainstObject(Light* light, Object3D* obj);
+void setGlobalLightDir(int vx, int vy, int vz, int index);
+void setGlobalLightDirFromPositionAgainstObject(Vector3D* pos, Object3D* obj, int index);
 
 void createRotationMatrixValues(int rotX, int rotY, int rotZ, int *rotVecs);
 
