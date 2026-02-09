@@ -31,7 +31,7 @@ static ScreenElement *screenElements;
 static Vector3D *rotatedNormals;
 
 static Light *globalLight[MAX_LIGHTS];
-static Vector3D rotatedGlobalLightVec;
+static Vector3D rotatedGlobalLightVec[MAX_LIGHTS];
 
 static int screenOffsetX = 0;
 static int screenOffsetY = 0;
@@ -269,7 +269,7 @@ static void prepareTransformedMeshCELs(Mesh *mesh)
 				}
 
 				if (mesh->renderType & MESH_OPTION_ENABLE_LIGHTING) {
-					int shade = -(getVector3Ddot(normal, &rotatedGlobalLightVec) >> NORMAL_SHIFT);
+					int shade = -(getVector3Ddot(normal, &rotatedGlobalLightVec[0]) >> NORMAL_SHIFT);
 					CLAMP(shade,(1<<(NORMAL_SHIFT-4)),((1<<NORMAL_SHIFT)-1))
 					cel->ccb_PIXC = shadeTable[shade >> (NORMAL_SHIFT-SHADE_TABLE_SHR)];
 				}
@@ -401,12 +401,29 @@ static void calculateVertexLighting(Mesh *mesh)
 	uint8* shadeMap = getRenderSoftShademap();
 
 	for (i=0; i<verticesNum; ++i) {
-		const int light = -(getVector3Ddot(normal, &rotatedGlobalLightVec) >> NORMAL_SHIFT);
+		const int light = -(getVector3Ddot(&normal[i], &rotatedGlobalLightVec[0]) >> NORMAL_SHIFT);
 		int c = light >> (NORMAL_SHIFT-COLOR_GRADIENTS_SHR);
 
 		CLAMP(c, 0, COLOR_GRADIENTS_SIZE - 1);
 		screenElements[i].c = shadeMap[c];
-		++normal;
+	}
+
+	if (mesh->renderType & MESH_OPTION_GOURAUD_RGB) {
+		for (i = 0; i < verticesNum; ++i) {
+			const int lightR = -(getVector3Ddot(normal, &rotatedGlobalLightVec[1]) >> NORMAL_SHIFT);
+			const int lightG = -(getVector3Ddot(normal, &rotatedGlobalLightVec[2]) >> NORMAL_SHIFT);
+			const int lightB = -(getVector3Ddot(normal, &rotatedGlobalLightVec[3]) >> NORMAL_SHIFT);
+			int r = lightR >> (NORMAL_SHIFT - COLOR_GRADIENTS_SHR);
+			int g = lightG >> (NORMAL_SHIFT - COLOR_GRADIENTS_SHR);
+			int b = lightB >> (NORMAL_SHIFT - COLOR_GRADIENTS_SHR);
+			CLAMP(r, 0, COLOR_GRADIENTS_SIZE - 1);
+			CLAMP(g, 0, COLOR_GRADIENTS_SIZE - 1);
+			CLAMP(b, 0, COLOR_GRADIENTS_SIZE - 1);
+			screenElements[i].r = shadeMap[r];
+			screenElements[i].g = shadeMap[g];
+			screenElements[i].b = shadeMap[b];
+			++normal;
+		}
 	}
 }
 
@@ -561,7 +578,14 @@ static void transformMesh(Object3D *obj, Camera *cam)
 	if (mesh->renderType & MESH_OPTION_ENABLE_LIGHTING) {
 		transposeMat3(rotMat);
 		normalizeVector3D(&globalLight[0]->dir);
-		SoftMulVec3Mat33_F16((vec3f16*)&rotatedGlobalLightVec, (vec3f16*)&globalLight[0]->dir, rotMat);
+		SoftMulVec3Mat33_F16((vec3f16*)&rotatedGlobalLightVec[0], (vec3f16*)&globalLight[0]->dir, rotMat);
+		if (mesh->renderType & MESH_OPTION_GOURAUD_RGB) {
+			int i;
+			for (i = 1; i < 4; ++i) {
+				normalizeVector3D(&globalLight[i]->dir);
+				SoftMulVec3Mat33_F16((vec3f16*)&rotatedGlobalLightVec[i], (vec3f16*)&globalLight[i]->dir, rotMat);
+			}
+		}
 	}
 }
 

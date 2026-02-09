@@ -543,6 +543,61 @@ static void prepareEdgeListSemiGouraud(ScreenElement* e0, ScreenElement* e1)
 	};
 }
 
+static void prepareEdgeListSemiGouraudRGB(ScreenElement* e0, ScreenElement* e1)
+{
+	Edge* edgeListToWrite;
+	int x0, x1, y0, y1, c0, c1;
+	int dy, dx, dc;
+	int fx, fc;
+
+	int32* dvt = &divTab[DIV_TAB_SIZE / 2];
+	int repDiv = 0;
+
+	// Assumes CCW
+	if (e0->y < e1->y) {
+		edgeListToWrite = leftEdge;
+	}
+	else {
+		ScreenElement* eTemp = e0; e0 = e1; e1 = eTemp;
+		edgeListToWrite = rightEdge;
+	}
+
+	x0 = e0->x; y0 = e0->y; c0 = e0->c;
+	x1 = e1->x; y1 = e1->y; c1 = e1->c;
+
+	if (y0 > SCREEN_HEIGHT - 1 || y1 < 0 || y1 < y0) return;
+
+	if ((y1 - y0) < DIV_TAB_SIZE / 2) {
+		repDiv = dvt[y1 - y0];
+	}
+
+	dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+	dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+
+	fx = INT_TO_FIXED(x0, FP_BASE);
+	fc = INT_TO_FIXED(c0, FP_BASE);
+
+	if (y0 < 0) {
+		fx += -y0 * dx;
+		fc += -y0 * dc;
+		y0 = 0;
+	}
+	if (y1 > SCREEN_HEIGHT - 1) {
+		y1 = SCREEN_HEIGHT - 1;
+	}
+	dy = y1 - y0;
+
+	edgeListToWrite = &edgeListToWrite[y0];
+	while (dy-- > 0) {
+		int x = FIXED_TO_INT(fx, FP_BASE);
+		edgeListToWrite->x = x;
+		edgeListToWrite->c = fc;
+		++edgeListToWrite;
+		fx += dx;
+		fc += dc;
+	};
+}
+
 static void fillGouraudEdges8_SemiSoft(int y0, int y1)
 {
 	Edge *le = &leftEdge[y0];
@@ -1280,7 +1335,11 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 		currentScanlineCel = scanlineCels;
 		startingScanlineCelDummy->ccb_PLUTPtr = (void*)gouraudColorShades;
 		startingScanlineCelDummy->ccb_PIXC = softPixc;
-		prepareEdgeList = prepareEdgeListSemiGouraud;
+		if (!(ms->renderType & MESH_OPTION_GOURAUD_RGB)) {
+			prepareEdgeList = prepareEdgeListSemiGouraud;
+		} else {
+			prepareEdgeList = prepareEdgeListSemiGouraudRGB;
+		}
 	} else {
 		prepareAndPositionSoftBuffer(ms, elements);
 		prepareEdgeList = prepareEdgeListSoft;
