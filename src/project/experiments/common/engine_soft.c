@@ -49,6 +49,8 @@ typedef struct GouraudScanlineCCB
 static CCB* startingScanlineCelDummy;
 static GouraudScanlineCCB* scanlineCels;
 static GouraudScanlineCCB* currentScanlineCel;
+static CelData** ccb_SourcePtrG;
+static CelData** ccb_SourcePtrB;
 static int currentScanlineIndex = 0;
 
 #define GRADIENT_SHADES 32
@@ -227,6 +229,9 @@ static void initSemiSoftGouraud()
 		scanlineCels[i].ccb_Flags &= ~CCB_LAST;
 		scanlineCels[i].ccb_Flags &= ~(CCB_LDPLUT | CCB_LDPRS | CCB_LDPPMP);
 	}
+
+	ccb_SourcePtrG = (CelData**)AllocMem(MAX_SCANLINES * sizeof(CelData*), MEMTYPE_ANY);
+	ccb_SourcePtrB = (CelData**)AllocMem(MAX_SCANLINES * sizeof(CelData*), MEMTYPE_ANY);
 }
 
 static void drawAntialiasedLine(ScreenElement *e1, ScreenElement *e2)
@@ -546,9 +551,10 @@ static void prepareEdgeListSemiGouraud(ScreenElement* e0, ScreenElement* e1)
 static void prepareEdgeListSemiGouraudRGB(ScreenElement* e0, ScreenElement* e1)
 {
 	Edge* edgeListToWrite;
-	int x0, x1, y0, y1, c0, c1;
-	int dy, dx, dc;
-	int fx, fc;
+	int x0, x1, y0, y1;
+	int r0, r1, g0, g1, b0, b1;
+	int dy, dx, dr, dg, db;
+	int fx, fr, fg, fb;
 
 	int32* dvt = &divTab[DIV_TAB_SIZE / 2];
 	int repDiv = 0;
@@ -562,8 +568,8 @@ static void prepareEdgeListSemiGouraudRGB(ScreenElement* e0, ScreenElement* e1)
 		edgeListToWrite = rightEdge;
 	}
 
-	x0 = e0->x; y0 = e0->y; c0 = e0->c;
-	x1 = e1->x; y1 = e1->y; c1 = e1->c;
+	x0 = e0->x; y0 = e0->y; r0 = e0->r; g0 = e0->g; b0 = e0->b;
+	x1 = e1->x; y1 = e1->y; r1 = e1->r; g1 = e1->g; b1 = e1->b;
 
 	if (y0 > SCREEN_HEIGHT - 1 || y1 < 0 || y1 < y0) return;
 
@@ -572,14 +578,20 @@ static void prepareEdgeListSemiGouraudRGB(ScreenElement* e0, ScreenElement* e1)
 	}
 
 	dx = ((x1 - x0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
-	dc = ((c1 - c0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+	dr = ((r1 - r0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+	dg = ((g1 - g0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
+	db = ((b1 - b0) * repDiv) >> (DIV_TAB_SHIFT - FP_BASE);
 
 	fx = INT_TO_FIXED(x0, FP_BASE);
-	fc = INT_TO_FIXED(c0, FP_BASE);
+	fr = INT_TO_FIXED(r0, FP_BASE);
+	fg = INT_TO_FIXED(g0, FP_BASE);
+	fb = INT_TO_FIXED(b0, FP_BASE);
 
 	if (y0 < 0) {
 		fx += -y0 * dx;
-		fc += -y0 * dc;
+		fr += -y0 * dr;
+		fg += -y0 * dg;
+		fb += -y0 * db;
 		y0 = 0;
 	}
 	if (y1 > SCREEN_HEIGHT - 1) {
@@ -591,14 +603,18 @@ static void prepareEdgeListSemiGouraudRGB(ScreenElement* e0, ScreenElement* e1)
 	while (dy-- > 0) {
 		int x = FIXED_TO_INT(fx, FP_BASE);
 		edgeListToWrite->x = x;
-		edgeListToWrite->c = fc;
+		edgeListToWrite->r = fr;
+		edgeListToWrite->g = fg;
+		edgeListToWrite->b = fb;
 		++edgeListToWrite;
 		fx += dx;
-		fc += dc;
+		fr += dr;
+		fg += dg;
+		fb += db;
 	};
 }
 
-static void fillGouraudEdges8_SemiSoft(int y0, int y1)
+static void fillGouraudEdges_SemiSoft(int y0, int y1)
 {
 	Edge *le = &leftEdge[y0];
 	Edge *re = &rightEdge[y0];
@@ -620,8 +636,6 @@ static void fillGouraudEdges8_SemiSoft(int y0, int y1)
 		CLAMP(cl,0,GRADIENT_LENGTH)
 		CLAMP(cr,0,GRADIENT_LENGTH)
 
-		cel->ccb_Flags &= ~CCB_LDPLUT;
-
 		cel->ccb_XPos = xl<<16;
 		cel->ccb_YPos = y<<16;
 
@@ -631,6 +645,62 @@ static void fillGouraudEdges8_SemiSoft(int y0, int y1)
 
 		++le;
 		++re;
+	}
+}
+
+static void fillGouraudEdges_SemiSoftRGB(int y0, int y1)
+{
+	Edge *le = &leftEdge[y0];
+	Edge *re = &rightEdge[y0];
+
+	int y;
+	for (y=y0; y<=y1; ++y) {
+		const int xl = le->x;
+		int r0 = le->r;
+		int r1 = re->r;
+		int g0 = le->g;
+		int g1 = re->g;
+		int b0 = le->b;
+		int b1 = re->b;
+		int length = re->x - xl;
+
+		GouraudScanlineCCB *cel = currentScanlineCel++;
+
+		if (currentScanlineIndex >= MAX_SCANLINES) return;	// fuck you I am not adding
+
+		r0 = FIXED_TO_INT(r0, FP_BASE);
+		r1 = FIXED_TO_INT(r1, FP_BASE);
+		g0 = FIXED_TO_INT(g0, FP_BASE);
+		g1 = FIXED_TO_INT(g1, FP_BASE);
+		b0 = FIXED_TO_INT(b0, FP_BASE);
+		b1 = FIXED_TO_INT(b1, FP_BASE);
+		CLAMP(r0,0,GRADIENT_LENGTH)
+		CLAMP(r1,0,GRADIENT_LENGTH)
+		CLAMP(g0,0,GRADIENT_LENGTH)
+		CLAMP(g1,0,GRADIENT_LENGTH)
+		CLAMP(b0,0,GRADIENT_LENGTH)
+		CLAMP(b1,0,GRADIENT_LENGTH)
+
+		cel->ccb_XPos = xl<<16;
+		cel->ccb_YPos = y<<16;
+
+		cel->ccb_HDX = (length<<20) / GRADIENT_LENGTH;
+		
+		cel->ccb_SourcePtr = (CelData*)&gourGradBmps[r0 * GRADIENT_GROUP_SIZE + r1 * GRADIENT_LENGTH];
+		ccb_SourcePtrG[currentScanlineIndex] = (CelData*)&gourGradBmps[g0 * GRADIENT_GROUP_SIZE + g1 * GRADIENT_LENGTH];
+		ccb_SourcePtrB[currentScanlineIndex] = (CelData*)&gourGradBmps[b0 * GRADIENT_GROUP_SIZE + b1 * GRADIENT_LENGTH];
+
+		++le;
+		++re;
+		++currentScanlineIndex;
+	}
+}
+
+static void copySemisoftChannelSourcePtrOverCelScanlines(CelData **channel)
+{
+	int i;
+	for (i=0; i<currentScanlineIndex; ++i) {
+		scanlineCels[i].ccb_SourcePtr = channel[i];
 	}
 }
 
@@ -1334,12 +1404,6 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 		currentScanlineIndex = 0;
 		currentScanlineCel = scanlineCels;
 		startingScanlineCelDummy->ccb_PLUTPtr = (void*)gouraudColorShades;
-		startingScanlineCelDummy->ccb_PIXC = softPixc;
-		if (!(ms->renderType & MESH_OPTION_GOURAUD_RGB)) {
-			prepareEdgeList = prepareEdgeListSemiGouraud;
-		} else {
-			prepareEdgeList = prepareEdgeListSemiGouraudRGB;
-		}
 	} else {
 		prepareAndPositionSoftBuffer(ms, elements);
 		prepareEdgeList = prepareEdgeListSoft;
@@ -1349,8 +1413,15 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 		case RENDER_SOFT_METHOD_GOURAUD:
 		{
 			if (useSemisoftGouraud) {
-				prepareEdgeList = prepareEdgeListSemiGouraud;
-				fillEdges = fillGouraudEdges8_SemiSoft;
+				if (!(ms->renderType & MESH_OPTION_GOURAUD_RGB)) {
+					prepareEdgeList = prepareEdgeListSemiGouraud;
+					fillEdges = fillGouraudEdges_SemiSoft;
+					startingScanlineCelDummy->ccb_PIXC = softPixc;
+				} else {
+					prepareEdgeList = prepareEdgeListSemiGouraudRGB;
+					fillEdges = fillGouraudEdges_SemiSoftRGB;
+					startingScanlineCelDummy->ccb_PIXC = PPMPC_1S_CFBD | PPMPC_MS_PDC | PPMPC_2S_0 | PPMPC_2D_2;
+				}
 			} else {
 				if (ms->renderType & MESH_OPTION_RENDER_SOFT8) {
 					fillEdges = fillGouraudEdges8;
@@ -1425,7 +1496,11 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
 				drawCels(startingScanlineCelDummy);
 			} else {	// hack for now RGB (but will also need to update the light normal calcs later on)
 				setPmvSemisoftGouraud(31, 0, 0); drawCels(startingScanlineCelDummy);
+
+				copySemisoftChannelSourcePtrOverCelScanlines(ccb_SourcePtrG);
 				setPmvSemisoftGouraud(0, 31, 0); drawCels(startingScanlineCelDummy);
+
+				copySemisoftChannelSourcePtrOverCelScanlines(ccb_SourcePtrB);
 				setPmvSemisoftGouraud(0, 0, 31); drawCels(startingScanlineCelDummy);
 			}
 			lastScanlineCel->ccb_Flags &= ~CCB_LAST;

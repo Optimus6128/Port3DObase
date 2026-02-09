@@ -280,16 +280,16 @@ void flipMeshPolyOrder(Mesh *ms)
 	}
 }
 
-void scaleMesh(Mesh *ms, int scaleX, int scaleY, int scaleZ)
+void scaleMesh(Mesh *ms, float scaleX, float scaleY, float scaleZ)
 {
 	const int verticesNum = ms->verticesNum;
 
 	int i;
 	Vertex *vrtx = ms->vertex;
 	for (i=0; i<verticesNum; ++i) {
-		vrtx->x *= scaleX;
-		vrtx->y *= scaleY;
-		vrtx->z *= scaleZ;
+		vrtx->x = (int)(vrtx->x * scaleX);
+		vrtx->y = (int)(vrtx->y * scaleY);
+		vrtx->z = (int)(vrtx->z * scaleZ);
 		++vrtx;
 	}
 }

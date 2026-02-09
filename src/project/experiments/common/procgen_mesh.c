@@ -829,7 +829,6 @@ Mesh *initGenMesh(int meshgenId, const MeshgenParams params, int optionsFlags, T
 		case MESH_PARTICLES:
 		{
 			const int particlesNum = params.numProcPoints;
-			const int halfSize = 256;
 
 			ms = initMesh(getElementsSize(particlesNum,0,0,0), optionsFlags, tex);
 

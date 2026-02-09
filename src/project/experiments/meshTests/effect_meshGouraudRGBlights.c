@@ -138,9 +138,6 @@ void effectMeshGouraudRGBlightsInit()
 		addLightToWorld(light[i], myWorld);
 	}
 
-	setRenderSoftPixc(PPMPC_1S_CFBD | PPMPC_MS_PDC | PPMPC_2S_0 | PPMPC_2D_2);
-	setPmvSemisoftGouraud(31, 31, 31);
-
 	setBillboardScale(1024);
 }
 
@@ -182,5 +179,6 @@ void effectMeshGouraudRGBlightsRun()
 	realViewerPos.y = viewer->pos.y >> FP_VPOS;
 	realViewerPos.z = viewer->pos.z >> FP_VPOS;
 	setGlobalLightDirFromPositionAgainstObject(&realViewerPos, loadedObj[OBJ_HARD], 0);
+
 	renderWorld(myWorld);
 }
