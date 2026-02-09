@@ -64,13 +64,13 @@ static uint8* shadeMap = NULL;
 typedef struct Edge
 {
 	int x;
-	int c;
+	int c,r,g,b;
 	int u,v;
 }Edge;
 
 typedef struct Gradients
 {
-	int dx,dc,du,dv;
+	int dx,dc,dr,dg,db,du,dv;
 }Gradients;
 
 typedef struct SoftBuffer
@@ -79,7 +79,6 @@ typedef struct SoftBuffer
 	int width;
 	int height;
 	int stride;
-	//int currentIndex;
 	unsigned char *data;
 	CCB *cel;
 }SoftBuffer;
@@ -550,8 +549,6 @@ static void fillGouraudEdges8_SemiSoft(int y0, int y1)
 	Edge *re = &rightEdge[y0];
 
 	int y;
-	//GouraudScanlineCCB *firstCel = currentScanlineCel;
-
 	for (y=y0; y<=y1; ++y) {
 		const int xl = le->x;
 		int cl = le->c;
@@ -580,9 +577,6 @@ static void fillGouraudEdges8_SemiSoft(int y0, int y1)
 		++le;
 		++re;
 	}
-	//If we ever need different gouraud gradient colors again I will enable that, like for every triangle to point to different color shades, but now we point to the same at startingScanlineCelDummy
-	//firstCel->ccb_PLUTPtr = (void*)gouraudColorShades;
-	//firstCel->ccb_Flags |= CCB_LDPLUT;
 }
 
 static void fillGouraudEdges8(int y0, int y1)
@@ -1164,6 +1158,38 @@ static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2
 	}
 }
 
+static void drawSemisoftPoly(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2, ScreenElement* e3)
+{
+	int y0, y1;
+
+	//if (shouldSkipTriangle(e0, e1, e2)) return;
+
+	prepareEdgeList(e0, e1);
+	prepareEdgeList(e1, e2);
+	if (e3 == NULL) {
+		prepareEdgeList(e2, e0);
+	} else {
+		prepareEdgeList(e2, e3);
+		prepareEdgeList(e3, e0);
+	}
+
+	y0 = e0->y;
+	y1 = y0;
+
+	if (e1->y < y0) y0 = e1->y; if (e1->y > y1) y1 = e1->y;
+	if (e2->y < y0) y0 = e2->y; if (e2->y > y1) y1 = e2->y;
+	if (e3 != NULL) {
+		if (e3->y < y0) y0 = e3->y; if (e3->y > y1) y1 = e3->y;
+	}
+
+	CLAMP_LEFT(y0, 0);
+	CLAMP_RIGHT(y1, SCREEN_HEIGHT - 1);
+
+	if (y0 < y1) {
+		fillEdges(y0, y1-1);
+	}
+}
+
 static void updateSoftBufferVariables(int posX, int posY, int width, int height, Mesh *ms)
 {
 	int celType = CEL_TYPE_UNCODED;
@@ -1191,16 +1217,7 @@ static void updateSoftBufferVariables(int posX, int posY, int width, int height,
 	if (softBuffer.stride < 8) softBuffer.stride = 8;					// and no less than 8 bytes
 
 	currentBufferSize = (((softBuffer.stride * softBuffer.height) + 255) >> 8) << 8; // must be in multiples of 256 bytes for the unrolled optimized memset
-	/*if (softBuffer.currentIndex + currentBufferSize > SOFT_BUFF_MAX_SIZE) {
-		softBuffer.currentIndex = 0;
-	}*/
-	//softBufferCurrentPtr = &softBuffer.data[softBuffer.currentIndex];
 	softBufferCurrentPtr = &softBuffer.data[0];
-
-	// I can't for the love of god remember why I needed this currentIndex
-	// Like instead of the software rendered 3d object on a CEL drawn at the start of the buffer, I offset it every frame
-	// Was it in the case I would render more than one objects in the scene at the same time? But then I might still give one drawcall per object instead of link those CELs together, wouldn't I?
-	// I will comment out everything and then maybe delete later when I fix this
 
 	if (currentBufferSize <= SOFT_BUFF_MAX_SIZE) {
 		#ifdef ASM_VRAMSET
@@ -1208,8 +1225,6 @@ static void updateSoftBufferVariables(int posX, int posY, int width, int height,
 		#else
 			memset(softBufferCurrentPtr, 0, currentBufferSize);
 		#endif
-
-		//softBuffer.currentIndex += currentBufferSize;
 	}	// else something went wrong
 
 	setCelWidth(softBuffer.width, softBuffer.cel);
@@ -1314,37 +1329,40 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 
 static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
 {
-	ScreenElement *e0, *e1, *e2;
+	ScreenElement *e0, *e1, *e2, *e3;
 	int i,n;
 
+	bool isSemisoftGouraud = mustUseSemisoftGouraud(ms);
 	int *index = ms->index;
 
 	prepareMeshSoftRender(ms, elements);
 
-	for (i=0; i<ms->polysNum; ++i) {
-		e0 = &elements[*index++];
-		e1 = &elements[*index++];
-		e2 = &elements[*index++];
+	if (isSemisoftGouraud) {
+		for (i = 0; i < ms->polysNum; ++i) {
+			int polyPointsNum = ms->poly[i].numPoints;
 
-		n = (e0->x - e1->x) * (e2->y - e1->y) - (e2->x - e1->x) * (e0->y - e1->y);
-		if (n > 0) {
-			bindMeshPolyData(ms, i);
-			drawTriangle(e0, e1, e2);
+			e0 = &elements[*index];
+			e1 = &elements[*(index + 1)];
+			e2 = &elements[*(index + 2)];
+			e3 = NULL;
 
-			if (ms->poly[i].numPoints == 4) {	// if quad then render another triangle
-				e1 = e2;
-				e2 = &elements[*index];
-				drawTriangle(e0, e1, e2);
+			n = (e0->x - e1->x) * (e2->y - e1->y) - (e2->x - e1->x) * (e0->y - e1->y);
+			if (n > 0) {
+				bindMeshPolyData(ms, i);
+				if (polyPointsNum == 3) {
+					drawSemisoftPoly(e0, e1, e2, e3);
+				} else {
+					e3 = &elements[*(index + 3)];
+					drawSemisoftPoly(e0, e1, e2, e3);
+				}
 			}
+			index += polyPointsNum;
 		}
-		if (ms->poly[i].numPoints == 4) ++index;
-	}
 
-	if (mustUseSemisoftGouraud(ms)) {
 		if (currentScanlineCel != scanlineCels) {	// something added
 			GouraudScanlineCCB* lastScanlineCel = currentScanlineCel - 1;
 			lastScanlineCel->ccb_Flags |= CCB_LAST;
-			if (ms->maxLights == 1) {
+			if (!(ms->renderType & MESH_OPTION_GOURAUD_RGB)) {
 				drawCels(startingScanlineCelDummy);
 			} else {	// hack for now RGB (but will also need to update the light normal calcs later on)
 				setPmvSemisoftGouraud(31, 0, 0); drawCels(startingScanlineCelDummy);
@@ -1354,6 +1372,27 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
 			lastScanlineCel->ccb_Flags &= ~CCB_LAST;
 		}
 	} else {
+		for (i = 0; i < ms->polysNum; ++i) {
+			int polyPointsNum = ms->poly[i].numPoints;
+
+			e0 = &elements[*index];
+			e1 = &elements[*(index+1)];
+			e2 = &elements[*(index+2)];
+
+			n = (e0->x - e1->x) * (e2->y - e1->y) - (e2->x - e1->x) * (e0->y - e1->y);
+			if (n > 0) {
+				bindMeshPolyData(ms, i);
+				drawTriangle(e0, e1, e2);
+
+				if (polyPointsNum == 4) {	// if quad then render another triangle
+					e1 = e2;
+					e2 = &elements[*(index+3)];
+					drawTriangle(e0, e1, e2);
+				}
+			}
+			index += polyPointsNum;
+		}
+
 		softBuffer.cel->ccb_PIXC = softPixc;
 		drawCels(softBuffer.cel);
 	}
@@ -1437,7 +1476,6 @@ static void initSoftBuffer()
 	softBuffer.bpp = 16;
 	softBuffer.width = SCREEN_WIDTH;
 	softBuffer.height = SCREEN_HEIGHT;
-	//softBuffer.currentIndex = 0;
 
 	softBuffer.data = AllocMem(SOFT_BUFF_MAX_SIZE, MEMTYPE_ANY);
 	softBuffer.cel = createCel(softBuffer.width, softBuffer.height, softBuffer.bpp, CEL_TYPE_UNCODED);

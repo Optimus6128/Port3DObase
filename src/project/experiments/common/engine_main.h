@@ -33,7 +33,7 @@ extern uint8 PMV_GOURAUD_SHADE_TAB[32];
 typedef struct ScreenElement
 {
 	int x,y,z;
-	int c;
+	uint8 c,r,g,b;
 	int u,v;
 	bool outside;
 }ScreenElement;

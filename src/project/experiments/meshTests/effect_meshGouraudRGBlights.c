@@ -103,7 +103,7 @@ static void prepareMeshObjects()
 		if (lightZero) {
 			meshOptions |= MESH_OPTION_ENABLE_LIGHTING;
 		}
-		if (i == OBJ_SOFT) meshOptions |= (MESH_OPTION_RENDER_SOFT8 | MESH_OPTION_ENABLE_LIGHTING);
+		if (i == OBJ_SOFT) meshOptions |= (MESH_OPTION_RENDER_SOFT8 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_GOURAUD_RGB);
 
 		loadedMesh[i] = loadMesh("data/vase.plg", MESH_LOAD_SKIP_LINES, meshOptions, vaseTex);
 		loadedObj[i] = initObject3D(loadedMesh[i]);
@@ -112,7 +112,7 @@ static void prepareMeshObjects()
 		setObject3Drot(loadedObj[i], 0, 0, 0);
 
 		addObjectToWorld(loadedObj[i], 1, true, myWorld);
-		if (i == OBJ_SOFT) setMeshMaxLights(loadedMesh[i], 3);
+		//if (i == OBJ_SOFT) setMeshMaxLights(loadedMesh[i], 3);
 	}
 
 	for (i = 0; i < NUM_LIGHTS; ++i) {
@@ -150,7 +150,7 @@ static void moveLights(int t, int index)
 	Light* l = light[index];
 
 	l->pos.x = SinF16(tt) >> 7;
-	l->pos.y = 320 + (SinF16(2*tt) >> 12) + (CosF16(3*tt) >> 11);
+	l->pos.y = 256 + (SinF16((1+index)*tt) >> 11) + (CosF16((2+index)*tt) >> 12) + index * 64;
 	l->pos.z = CosF16(tt) >> 7;
 
 	setObject3Dpos(lightObj[index], l->pos.x, l->pos.y, l->pos.z);

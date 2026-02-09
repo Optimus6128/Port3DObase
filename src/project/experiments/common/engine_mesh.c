@@ -112,11 +112,6 @@ void setMeshTexture(Mesh *ms, Texture *tex)
 	ms->tex = tex;
 }
 
-void setMeshMaxLights(Mesh* ms, int lightsNum)
-{
-	ms->maxLights = lightsNum;
-}
-
 void setMeshPaletteIndex(Mesh *ms, int palIndex)
 {
 	if (!(ms->renderType & MESH_OPTION_RENDER_SOFT)) {
@@ -353,7 +348,7 @@ Mesh* initMesh(ElementsSize *elSize, int renderType, Texture *tex)
 	ms->cel = NULL;
 	ms->vertexCol = NULL;
 	ms->vertexTC = NULL;
-	ms->maxLights = 1;
+	ms->lightBits = 1;	// default value that says light 0 (out of 32 lights in a scene). Not used yet, reserved for a future idea.
 
 	if (elSize) {
 		ms->verticesNum = elSize->verticesNum;

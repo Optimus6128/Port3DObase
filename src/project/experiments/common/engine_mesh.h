@@ -17,6 +17,7 @@
 #define MESH_OPTION_NO_POLYCLIP			(1 << 8)
 #define MESH_OPTION_NO_POLYSORT			(1 << 9)
 #define MESH_OPTION_NO_TRANSLATE		(1 << 10)
+#define MESH_OPTION_GOURAUD_RGB			(1 << 11)
 #define MESH_OPTIONS_DEFAULT 			(MESH_OPTION_FAST_MAPCEL | MESH_OPTION_CPU_POLYTEST)
 
 #define MESH_LOAD_SKIP_LINES		(1 << 0)
@@ -64,7 +65,8 @@ typedef struct Mesh
 	Texture *tex;
 
 	int renderType;
-	int maxLights;	// number of lights affecting this object (most will be 1, but set it for RGB semigouraud)
+	int lightBits;	// change in idea, this could be bitfield for 1 to 32 lights in the scene, to note which will affect the shading (ones closest to the object out of max num)
+					// Initially I added it for RGB SemiSoft Gouraud but now I have a MESH_OPTIONS_GOURAUD_RGB for the special case. But might use it for other things in the future even for pure hardware CEL scenes
 }Mesh;
 
 typedef struct ElementsSize
@@ -92,7 +94,6 @@ void setMeshDottedDisplay(Mesh *ms, bool enable);
 void setMeshPolygonCPUbackfaceTest(Mesh *ms, bool enable);
 
 void setMeshTexture(Mesh *ms, Texture *tex);
-void setMeshMaxLights(Mesh* ms, int lightsNum);
 void setMeshPaletteIndex(Mesh *ms, int palIndex);
 
 void setAllPolyData(Mesh *ms, int numPoints, int textureId, int palId);
