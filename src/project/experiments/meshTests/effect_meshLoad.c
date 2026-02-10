@@ -78,7 +78,7 @@ void effectMeshLoadInit()
 
 	viewer = createViewer(64,192,64, 176);
 	//setViewerPos(viewer, 0,96,-1024);
-	setViewerPos(viewer, 0,160,-320);
+	setViewerPos(viewer, 0,160,-768);
 
 	light = createLight(true);
 

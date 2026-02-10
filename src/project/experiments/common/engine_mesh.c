@@ -11,6 +11,8 @@
 #include "file_utils.h"
 
 
+static char* strPlgValues[32];
+
 static void setCelTexShifts(CCB *cel, PolyData *poly)
 {
 	const int texShrX = getShr(poly->subtexWidth);
@@ -470,10 +472,10 @@ static Mesh *loadMesh3do(char *path, int loadOptions, int meshOptions, Texture *
 static char* readLineStringFromPlg(Stream *CDstream)
 {
 	int i;
-	static char lbuf[64];
+	static char lbuf[256];
 
 	do {
-		for (i=0; i<64; ++i) {
+		for (i=0; i<256; ++i) {
 			char c;
 
 			readSequentialBytesFromFileStream(1, &c, CDstream);
@@ -506,41 +508,51 @@ static void readLineValues(char *inp, char *out[], int numVals)
 	}
 }
 
-static int getNumTrianglesAndMaxPolyPointsFromPlg(char *objFile, int *outMaxPolyPoints)
+typedef struct ElementsPLG
 {
-	static int maxPolyPoints;
-	char *values[32];
+	int trianglesNum;
+	int quadsNum;
+	int maxPolyPoints;
+} ElementsPLG;
+
+static ElementsPLG getNumElementsFromPlg(char *objFile)
+{
+	ElementsPLG elements;
 
 	Stream *CDstream = openFileStream(objFile);
 
-	int numVertices, numPolys, numTriangles;
+	int numVertices, numPolys;
 	int i;
 
-	readLineValues(readLineStringFromPlg(CDstream), values, 3);
+	elements.maxPolyPoints = 0;
+	elements.trianglesNum = 0;
+	elements.quadsNum = 0;
 
-	numVertices = atoi(values[1]);
-	numPolys = atoi(values[2]);		// PLG polys that can have more edges than triangles
-	numTriangles = 0;				// as we subdivide to only triangles below we will be increasing this
+	readLineValues(readLineStringFromPlg(CDstream), strPlgValues, 3);
+
+	numVertices = atoi(strPlgValues[1]);
+	numPolys = atoi(strPlgValues[2]);		// PLG polys that can have more edges than triangles
 
 	for (i=0; i<numVertices; ++i) {
 		readLineStringFromPlg(CDstream);	// read just to skip
 	}
 
-	maxPolyPoints = 0;
 	for (i=0; i<numPolys; ++i) {
 		int numPoints;
 		char *lbuf = readLineStringFromPlg(CDstream);
-		readLineValues(lbuf, values, 2); // 0 is material, 1 is number of points in n-gon
-		numPoints = atoi(values[1]);
-		if (numPoints > maxPolyPoints) maxPolyPoints = numPoints;
-		numTriangles += (numPoints - 2);
+		readLineValues(lbuf, strPlgValues, 2); // 0 is material, 1 is number of points in n-gon
+		numPoints = atoi(strPlgValues[1]);
+		if (numPoints > elements.maxPolyPoints) elements.maxPolyPoints = numPoints;
+		if (numPoints == 4) {
+			elements.quadsNum++;
+		} else {
+			elements.trianglesNum += (numPoints - 2);	// if 3 or >=5 then we will subdivide triangles (now over 4 we could also mix quads and triangles but I leave it now to simplify)
+		}
 	}
 
 	closeFileStream(CDstream);
 
-	*outMaxPolyPoints = maxPolyPoints;
-
-	return numTriangles;
+	return elements;
 }
 
 static Mesh* loadMeshPlg(char *objFile, int loadOptions, int meshOptions, Texture *tex)
@@ -551,60 +563,64 @@ static Mesh* loadMeshPlg(char *objFile, int loadOptions, int meshOptions, Textur
 	bool flipPolyOrder = loadOptions & MESH_LOAD_FLIP_POLYORDER;
 
 	// Prepass file read to count the actual numTriangles as PLG polys might consist of variable n-gons
-	int maxPolyPoints;
-	const int numTriangles = getNumTrianglesAndMaxPolyPointsFromPlg(objFile, &maxPolyPoints);
-	const int numIndices = 3 * numTriangles;	// I add things as triangles, can be 4 point quads in the future, at least for some PLGs
-	const int maxIndexDataNum = 2 + maxPolyPoints;
 
-	char **values = (char**)malloc(maxIndexDataNum * sizeof(char*));
+	const ElementsPLG elements = getNumElementsFromPlg(objFile);
+	const int numIndices = 3 * elements.trianglesNum + 4 * elements.quadsNum;
+	const int maxIndexDataNum = 2 + elements.maxPolyPoints;
 
 	Stream *CDstream = openFileStream(objFile);
 
 	int numVertices, numPolys;
 	int i, currentIndex = 0;
+	PolyData* polyData;
 
+	readLineValues(readLineStringFromPlg(CDstream), strPlgValues, 3);
 
-	readLineValues(readLineStringFromPlg(CDstream), values, 3);
+	numVertices = atoi(strPlgValues[1]);
+	numPolys = atoi(strPlgValues[2]);		// numPolys are n-gons, could be from 3 to 12 or more inside the PLG
 
-	numVertices = atoi(values[1]);
-	numPolys = atoi(values[2]);		// numPolys are n-gons, could be from 3 to 12 or more inside the PLG
+	mesh = initMesh(getElementsSize(numVertices, elements.trianglesNum + elements.quadsNum, numIndices, 0), meshOptions, tex);
 
-	mesh = initMesh(getElementsSize(numVertices, numTriangles, numIndices, 0), meshOptions, tex);
+	setAllPolyData(mesh, 3, 0, 0);
+	polyData = mesh->poly;
 
 	for (i=0; i<numVertices; ++i) {
 		char *lbuf = readLineStringFromPlg(CDstream);
-		readLineValues(lbuf, values, 3);
-		mesh->vertex[i].x = atoi(values[0]);
-		mesh->vertex[i].y = atoi(values[1]);
-		mesh->vertex[i].z = atoi(values[2]);
+		readLineValues(lbuf, strPlgValues, 3);
+		mesh->vertex[i].x = atoi(strPlgValues[0]);
+		mesh->vertex[i].y = atoi(strPlgValues[1]);
+		mesh->vertex[i].z = atoi(strPlgValues[2]);
 	}
 
 	for (i=0; i<numPolys; ++i) {
 		int numPoints;
 		char *lbuf = readLineStringFromPlg(CDstream);
-		readLineValues(lbuf, values, maxIndexDataNum); // later I will deduce by reading second value the size, now I just read max
-		numPoints = atoi(values[1]);
+		readLineValues(lbuf, strPlgValues, maxIndexDataNum); // later I will deduce by reading second value the size, now I just read max
+		numPoints = atoi(strPlgValues[1]);
 
-		if (numPoints == 3) {
-			int *index = &mesh->index[currentIndex];
-			*index = atoi(values[2]);
-			*(index + 1) = atoi(values[3]);
-			*(index + 2) = atoi(values[4]);
-			currentIndex += 3;
+		if (numPoints == 3 || numPoints == 4) {
+			int j;
+			int* index = &mesh->index[currentIndex];
+			for (j=0; j<numPoints; ++j) {
+				*(index + j) = atoi(strPlgValues[2+j]);
+			}
+			currentIndex += numPoints;
+			polyData->numPoints = numPoints;
+			polyData++;
 		} else {
 			int j;
 			for (j=0; j<numPoints - 2; ++j) {
 				int *index = &mesh->index[currentIndex];
-				*index = atoi(values[2]);
-				*(index + 1) = atoi(values[3+j]);
-				*(index + 2) = atoi(values[4+j]);
+				*index = atoi(strPlgValues[2]);
+				*(index + 1) = atoi(strPlgValues[3+j]);
+				*(index + 2) = atoi(strPlgValues[4+j]);
 				index += 3;
 				currentIndex += 3;
+				polyData->numPoints = 3;
+				polyData++;
 			}
 		}
 	}
-
-	setAllPolyData(mesh, 3, 0, 0);
 
 	//centerMeshVertices(mesh);
 
@@ -614,8 +630,6 @@ static Mesh* loadMeshPlg(char *objFile, int loadOptions, int meshOptions, Textur
 	prepareCelList(mesh);
 
 	closeFileStream(CDstream);
-
-	free(values);
 
 	return mesh;
 }

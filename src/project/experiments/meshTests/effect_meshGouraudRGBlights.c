@@ -112,7 +112,6 @@ static void prepareMeshObjects()
 		setObject3Drot(loadedObj[i], 0, 0, 0);
 
 		addObjectToWorld(loadedObj[i], 1, true, myWorld);
-		//if (i == OBJ_SOFT) setMeshMaxLights(loadedMesh[i], 3);
 	}
 
 	for (i = 0; i < NUM_LIGHTS; ++i) {

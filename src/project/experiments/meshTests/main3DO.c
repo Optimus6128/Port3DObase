@@ -9,7 +9,7 @@
 	int main3DO()
 #endif
 {
-	int extraOpts = CORE_NO_VSYNC | CORE_VRAM_MAXBUFFERS | CORE_SHOW_MEM;
+		int extraOpts = CORE_NO_VSYNC | CORE_VRAM_MAXBUFFERS;// | CORE_SHOW_MEM;
 	//int extraOpts = CORE_NO_VSYNC | CORE_SHOW_MEM;
 
 	const int effectIndex = runEffectSelector(effectName, EFFECTS_NUM);
