@@ -45,6 +45,7 @@ static uint16 blobPal[NUM_LIGHTS * 32];
 
 static World *myWorld;
 static bool lightZero = true;
+static bool objCube = false;
 
 
 static void shadeGrid()
@@ -67,7 +68,7 @@ static void shadeGrid()
 static void prepareMeshObjects()
 {
 	int i;
-	const int d = 2;
+	const int d = 1;
 
 	MeshgenParams gridParams = makeMeshgenGridParams(2048, GRID_SIZE);
 	MeshgenParams particlesParams = makeMeshgenParticlesParams(1);
@@ -105,7 +106,11 @@ static void prepareMeshObjects()
 		}
 		if (i == OBJ_SOFT) meshOptions |= (MESH_OPTION_RENDER_SOFT8 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_GOURAUD_RGB);
 
-		loadedMesh[i] = loadMesh("data/vase.plg", MESH_LOAD_SKIP_LINES, meshOptions, vaseTex);
+		if (objCube) {
+			loadedMesh[i] = initGenMesh(MESH_CUBE, makeDefaultMeshgenParams(384 - (i << 3)), meshOptions, vaseTex);
+		} else {
+			loadedMesh[i] = loadMesh("data/vase.plg", MESH_LOAD_SKIP_LINES, meshOptions, vaseTex);
+		}
 		loadedObj[i] = initObject3D(loadedMesh[i]);
 
 		setObject3Dpos(loadedObj[i], 0, 320, 0);
@@ -150,6 +155,14 @@ static void moveLights(int t, int index)
 	l->pos.z = CosF16(tt) >> 7;
 
 	setObject3Dpos(lightObj[index], l->pos.x, l->pos.y, l->pos.z);
+
+	if (objCube) {
+		int i;
+		int ttt = t >> 8;
+		for (i=0; i<OBJ_NUM; ++i) {
+			setObject3Drot(loadedObj[i], ttt, 2*ttt, 3*ttt);
+		}
+	}
 }
 
 static void inputScript(int dt)
